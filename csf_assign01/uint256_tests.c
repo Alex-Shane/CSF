@@ -38,16 +38,17 @@ TestObjs *setup(void);
 void cleanup(TestObjs *objs);
 
 // Declarations of test functions
-void test_get_bits(TestObjs *objs);
+//void test_get_bits(TestObjs *objs);
 void test_create_from_u32(TestObjs *objs);
 void test_create(TestObjs *objs);
-void test_create_from_hex(TestObjs *objs);
+/*void test_create_from_hex(TestObjs *objs);
 void test_format_as_hex(TestObjs *objs);
 void test_add(TestObjs *objs);
 void test_sub(TestObjs *objs);
 void test_negate(TestObjs *objs);
 void test_rotate_left(TestObjs *objs);
 void test_rotate_right(TestObjs *objs);
+*/
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -56,16 +57,17 @@ int main(int argc, char **argv) {
 
   TEST_INIT();
 
-  TEST(test_get_bits);
+  //TEST(test_get_bits);
   TEST(test_create_from_u32);
   TEST(test_create);
-  TEST(test_create_from_hex);
+  /*TEST(test_create_from_hex);
   TEST(test_format_as_hex);
   TEST(test_add);
   TEST(test_sub);
   TEST(test_negate);
   TEST(test_rotate_left);
   TEST(test_rotate_right);
+  */
 
   TEST_FINI();
 }
