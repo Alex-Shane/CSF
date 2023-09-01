@@ -38,7 +38,7 @@ TestObjs *setup(void);
 void cleanup(TestObjs *objs);
 
 // Declarations of test functions
-//void test_get_bits(TestObjs *objs);
+void test_get_bits(TestObjs *objs);
 void test_create_from_u32(TestObjs *objs);
 void test_create(TestObjs *objs);
 /*void test_create_from_hex(TestObjs *objs);
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
   TEST_INIT();
 
-  //TEST(test_get_bits);
+  TEST(test_get_bits);
   TEST(test_create_from_u32);
   TEST(test_create);
   /*TEST(test_create_from_hex);

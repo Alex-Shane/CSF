@@ -43,11 +43,11 @@ char *uint256_format_as_hex(UInt256 val) {
 }
 
 // Get 32 bits of data from a UInt256 value.
-// Index 0 is the least significant 32 bits, index 3 is the most
+// Index 0 is the least significant 32 bits, index 7 is the most
 // significant 32 bits.
 uint32_t uint256_get_bits(UInt256 val, unsigned index) {
-  uint32_t bits;
-  // TODO: implement
+  uint32_t bits; 
+  bits = val.data[index];
   return bits;
 }
 
