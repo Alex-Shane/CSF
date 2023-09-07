@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,7 +31,33 @@ UInt256 uint256_create(const uint32_t data[8]) {
 // Create a UInt256 value from a string of hexadecimal digits.
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
-  // TODO: implement
+  int len = strlen(hex);
+  const char *cur = len == 1 ? hex : hex + len - 1;
+  int remaining = len; // Initialize the remaining characters to read
+  for (int i = 0; i < 64; i += 8) {
+      if (remaining == 0) {
+        result.data[i/8] = 0;
+      }
+      else {
+        // Calculate the number of characters to read for the current int we want
+        int read_size = remaining < 8 ? remaining : 8;
+        // provide store for up to 8 hex digits plus null terminator
+        char cur_int[read_size+1]; 
+        // set storage to all zeros
+        memset(cur_int, 0, sizeof(cur_int));
+        for (int x = 0; x < 8; x++) {
+          // if we stil have digits to read, read them
+          if (x < read_size) {
+            cur_int[x] = *cur; 
+          }
+          cur--;
+        }
+        cur_int[read_size] = '\0';
+        uint32_t value = (uint32_t)strtoul(cur_int, NULL, 16);
+        result.data[i / 8] = value;
+        remaining -= read_size;
+      }
+    }
   return result;
 }
 
