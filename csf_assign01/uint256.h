@@ -31,6 +31,9 @@ UInt256 uint256_create_from_hex(const char *hex);
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val);
 
+// Helper function for uint256_format_as_hex to trim zeros off final string
+void trimLeadingZeros(char *str);
+
 // Get 32 bits of data from a UInt256 value.
 // Index 0 is the least significant 32 bits, index 7 is the most
 // significant 32 bits.

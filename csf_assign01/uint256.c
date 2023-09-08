@@ -64,9 +64,37 @@ UInt256 uint256_create_from_hex(const char *hex) {
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
-  char *hex = NULL;
-  // TODO: implement
+  char *hex = (char*) malloc(65);
+  char *hex_temp = hex;
+  for (int i = 7; i >= 0; i--) {
+    uint32_t cur_val = val.data[i];
+    char buf[9];
+    memset(buf, 0, sizeof(buf));
+    sprintf(buf, "%x", cur_val);
+    strcpy(hex_temp, buf);
+    hex_temp += strlen(buf);
+  }
+  trimLeadingZeros(hex);
   return hex;
+}
+
+void trimLeadingZeros(char *str) {
+    // Find the first non-zero character
+    int nonZeroIndex = 0;
+    while (str[nonZeroIndex] == '0') {
+        nonZeroIndex++;
+    }
+    // If string is just leading zeros, make it just '0'
+    if (nonZeroIndex == 8) {
+      str[0] = '0';
+      str[1] = '\0';
+    }
+    // If there are leading zeros and the string isn't '00000000', shift the string to remove them
+    if (nonZeroIndex > 0 && nonZeroIndex < 8) {
+        int length = strlen(str);
+        // +1 for the null terminator
+        memmove(str, str + nonZeroIndex, length - nonZeroIndex + 1); 
+    }
 }
 
 // Get 32 bits of data from a UInt256 value.
