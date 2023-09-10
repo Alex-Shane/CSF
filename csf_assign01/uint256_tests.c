@@ -132,6 +132,8 @@ void test_get_bits(TestObjs *objs) {
   ASSERT(0xFFFFFFFFU == uint256_get_bits(objs->max, 5));
   ASSERT(0xFFFFFFFFU == uint256_get_bits(objs->max, 6));
   ASSERT(0xFFFFFFFFU == uint256_get_bits(objs->max, 7));
+
+  //Todo: add edge cases
 }
 
 void test_create_from_u32(TestObjs *objs) {
@@ -140,6 +142,8 @@ void test_create_from_u32(TestObjs *objs) {
 
   ASSERT_SAME(objs->zero, zero);
   ASSERT_SAME(objs->one, one);
+
+  //Todo: add edge cases
 }
 
 void test_create(TestObjs *objs) {
@@ -155,6 +159,8 @@ void test_create(TestObjs *objs) {
   ASSERT(6U == val1.data[5]);
   ASSERT(7U == val1.data[6]);
   ASSERT(8U == val1.data[7]);
+
+  //Todo: add edge cases
 }
 
 void test_create_from_hex(TestObjs *objs) {
@@ -166,6 +172,8 @@ void test_create_from_hex(TestObjs *objs) {
 
   UInt256 max = uint256_create_from_hex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, max);
+
+  // Added edge tests
 }
 
 void test_format_as_hex(TestObjs *objs) {

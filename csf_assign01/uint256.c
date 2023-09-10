@@ -132,7 +132,7 @@ UInt256 uint256_negate(UInt256 val) {
 // should be shifted back into the least significant bits.
 UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   UInt256 result;
-  // TODO: implement
+  
   return result;
 }
 
