@@ -257,6 +257,14 @@ void test_rotate_left(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xD0000000U == result.data[7]);
+
+  // after rotating by 257 bits, should be the same as rotating by 1 bit
+  result = uint256_rotate_left(objs->msb_set, 257);
+  ASSERT_SAME(objs->one, result);
+
+  // after rotating by 256 bits, should be the same as before rotation
+  result = uint256_rotate_left(objs->msb_set, 0);
+  ASSERT_SAME(objs->msb_set, result);
 }
 
 void test_rotate_right(TestObjs *objs) {
@@ -278,4 +286,12 @@ void test_rotate_right(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xBCD00000U == result.data[7]);
+
+  // after rotating by 257 bits, should be the same as rotating by 1 bit
+  result = uint256_rotate_right(objs->one, 257);
+  ASSERT_SAME(objs->msb_set, result);
+
+  // after rotating by 256 bits, should be the same as before rotation
+  result = uint256_rotate_right(objs->one, 0);
+  ASSERT_SAME(objs->one, result);
 }
