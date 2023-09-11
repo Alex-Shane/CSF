@@ -131,8 +131,26 @@ UInt256 uint256_negate(UInt256 val) {
 // the left.  Any bits shifted past the most significant bit
 // should be shifted back into the least significant bits.
 UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
-  UInt256 result;
-  
+  UInt256 result = val;
+  // if shifting more than 256, just circles back to shifting a small amount (257 = shifting 1 bit)
+  nbits = nbits % 256;
+  uint32_t ints_to_shift = nbits / 32;
+  for (uint32_t i = 0; i < ints_to_shift; i++) {
+    uint32_t left_block = result.data[7];
+    for (uint32_t k = 7; k > 0; k--) {
+      result.data[k] = result.data[k - 1];
+    }
+    result.data[0] = left_block;
+  }
+
+  uint32_t leftover_bits = nbits % 32;
+  if (leftover_bits > 0) {
+    uint32_t spill_over = 0;
+    uint32_t left_block = result.data[7];
+    result.data[7] = (result.data[7] << leftover_bits);
+    spill_over = left_block >> (32-nbits);
+    result.data[0] = (result.data[0] << leftover_bits) | spill_over;
+  }
   return result;
 }
 
@@ -140,7 +158,25 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 // the right. Any bits shifted past the least significant bit
 // should be shifted back into the most significant bits.
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
-  UInt256 result;
-  // TODO: implement
+  UInt256 result = val;
+  // if shifting more than 256, just circles back to shifting a small amount (257 = shifting 1 bit)
+  nbits = nbits % 256;
+  uint32_t ints_to_shift = nbits / 32;
+  for (uint32_t i = 0; i < ints_to_shift; i++) {
+    uint32_t right_block = result.data[0];
+    for (uint32_t k = 0; k < 7; k++) {
+      result.data[k] = result.data[k + 1];
+    }
+    result.data[7] = right_block;
+  }
+
+  uint32_t leftover_bits = nbits % 32;
+  if (leftover_bits > 0) {
+    uint32_t spill_over = 0;
+    uint32_t right_block = result.data[0];
+    result.data[0] = (result.data[0] >> leftover_bits);
+    spill_over = right_block << (32-nbits);
+    result.data[7] = (result.data[7] >> leftover_bits) | spill_over;
+  }
   return result;
 }
