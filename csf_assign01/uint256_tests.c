@@ -173,7 +173,8 @@ void test_create_from_hex(TestObjs *objs) {
   UInt256 max = uint256_create_from_hex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, max);
 
-  // Added edge tests
+  // Add edge tests
+  
 }
 
 void test_format_as_hex(TestObjs *objs) {

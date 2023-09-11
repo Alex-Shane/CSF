@@ -35,7 +35,7 @@ UInt256 uint256_create_from_hex(const char *hex) {
   const char *cur = len == 1 ? hex : hex + len - 1;
   int remaining = len; // Initialize the remaining characters to read
   for (int i = 0; i < 64; i += 8) {
-      if (remaining == 0) {
+      if (remaining <= 0) {
         result.data[i/8] = 0;
       }
       else {
@@ -134,10 +134,10 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   UInt256 result = val;
   // if shifting more than 256, just circles back to shifting a small amount (257 = shifting 1 bit)
   nbits = nbits % 256;
-  uint32_t ints_to_shift = nbits / 32;
-  for (uint32_t i = 0; i < ints_to_shift; i++) {
+  int ints_to_shift = nbits / 32;
+  for (int i = 0; i < ints_to_shift; i++) {
     uint32_t left_block = result.data[7];
-    for (uint32_t k = 7; k > 0; k--) {
+    for (int k = 7; k > 0; k--) {
       result.data[k] = result.data[k - 1];
     }
     result.data[0] = left_block;
@@ -146,10 +146,12 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
   uint32_t leftover_bits = nbits % 32;
   if (leftover_bits > 0) {
     uint32_t spill_over = 0;
-    uint32_t left_block = result.data[7];
-    result.data[7] = (result.data[7] << leftover_bits);
-    spill_over = left_block >> (32-nbits);
-    result.data[0] = (result.data[0] << leftover_bits) | spill_over;
+    for (int x = 0; x < 8; x++) {
+      uint32_t temp = result.data[x];
+      result.data[x] = (result.data[x] << leftover_bits) | spill_over;
+      spill_over = temp >> (32-leftover_bits);
+    }
+    result.data[0] = result.data[0] | spill_over;
   }
   return result;
 }
@@ -161,10 +163,10 @@ UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
   UInt256 result = val;
   // if shifting more than 256, just circles back to shifting a small amount (257 = shifting 1 bit)
   nbits = nbits % 256;
-  uint32_t ints_to_shift = nbits / 32;
-  for (uint32_t i = 0; i < ints_to_shift; i++) {
+  int ints_to_shift = nbits / 32;
+  for (int i = 0; i < ints_to_shift; i++) {
     uint32_t right_block = result.data[0];
-    for (uint32_t k = 0; k < 7; k++) {
+    for (int k = 0; k < 7; k++) {
       result.data[k] = result.data[k + 1];
     }
     result.data[7] = right_block;
@@ -172,11 +174,15 @@ UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
 
   uint32_t leftover_bits = nbits % 32;
   if (leftover_bits > 0) {
-    uint32_t spill_over = 0;
-    uint32_t right_block = result.data[0];
+    uint32_t temp = result.data[0];
+    uint32_t spill_over = temp << (32-leftover_bits);
     result.data[0] = (result.data[0] >> leftover_bits);
-    spill_over = right_block << (32-nbits);
-    result.data[7] = (result.data[7] >> leftover_bits) | spill_over;
+    for (int j = 7; j > 0; j--) {
+      uint32_t temp = result.data[j];
+      result.data[j] = (result.data[j] >> (leftover_bits)) | spill_over;
+      spill_over = temp << (32-leftover_bits);
+    }
+    result.data[7] = result.data[7] | spill_over;
   }
   return result;
 }
