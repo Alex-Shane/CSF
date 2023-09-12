@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "tctest.h"
@@ -46,10 +47,8 @@ void test_create_from_u32(TestObjs *objs);
 void test_create(TestObjs *objs);
 void test_create_from_hex(TestObjs *objs);
 void test_format_as_hex(TestObjs *objs);
-/*
 void test_rotate_left(TestObjs *objs);
 void test_rotate_right(TestObjs *objs);
-*/
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -66,12 +65,8 @@ int main(int argc, char **argv) {
   TEST(test_create);
   TEST(test_create_from_hex);
   TEST(test_format_as_hex);
-  /*
-
   TEST(test_rotate_left);
   TEST(test_rotate_right);
-  */
-
   TEST_FINI();
 }
 
@@ -143,6 +138,18 @@ void test_create_from_u32(TestObjs *objs) {
 
   ASSERT_SAME(objs->zero, zero);
   ASSERT_SAME(objs->one, one);
+
+  // test max uint32
+  UInt256 max_uint32 = uint256_create_from_u32(2147483647);
+  uint32_t array[8] = {2147483647, 0,0,0,0,0,0,0};
+  UInt256 expected = uint256_create(array);
+  ASSERT_SAME(expected, max_uint32);
+
+  //test random uint32
+  UInt256 random = uint256_create_from_u32(576);
+  uint32_t array2[8] = {576, 0,0,0,0,0,0,0};
+  UInt256 expected2 = uint256_create(array2);
+  ASSERT_SAME(expected2, random);
 }
 
 void test_create(TestObjs *objs) {
@@ -158,6 +165,23 @@ void test_create(TestObjs *objs) {
   ASSERT(6U == val1.data[5]);
   ASSERT(7U == val1.data[6]);
   ASSERT(8U == val1.data[7]);
+
+  // test create with really big, random numbers
+  uint32_t data2[8] = { 292847475, 2857372, 38574712, 585747376, 48577564, 58696, 790, 863 };
+  UInt256 val2 = uint256_create(data2);
+  ASSERT(292847475 == val2.data[0]);
+  ASSERT(2857372 == val2.data[1]);
+  ASSERT(38574712 == val2.data[2]);
+  ASSERT(585747376 == val2.data[3]);
+  ASSERT(48577564 == val2.data[4]);
+  ASSERT(58696 == val2.data[5]);
+  ASSERT(790 == val2.data[6]);
+  ASSERT(863 == val2.data[7]);
+
+  // test create with all zeros
+  uint32_t data3[8] = {0,0,0,0,0,0,0,0};
+  UInt256 zero_test = uint256_create(data3);
+  ASSERT_SAME(objs->zero, zero_test);
 }
 
 void test_create_from_hex(TestObjs *objs) {
@@ -169,6 +193,22 @@ void test_create_from_hex(TestObjs *objs) {
 
   UInt256 max = uint256_create_from_hex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   ASSERT_SAME(objs->max, max);
+
+  // test that create_from_hex only reads rightmost chars with string longer than 64 characters
+  UInt256 should_be_zero = uint256_create_from_hex("f0000000000000000000000000000000000000000000000000000000000000000");
+  ASSERT_SAME(objs->zero, should_be_zero);
+
+  // test create_from_hex works with random hex, size not multiple of 8
+  UInt256 random = uint256_create_from_hex("123456abcdef");
+  uint32_t array[8] = {1454099951, 4660, 0, 0, 0, 0, 0, 0 };
+  UInt256 expected = uint256_create(array);
+  ASSERT_SAME(expected, random);
+
+  // test create_from_hex works with second random, longer, hex whose size is multiple of 8
+  UInt256 random2 = uint256_create_from_hex("0123456789abcdef0123456789abcdef");
+  uint32_t array2[8] = {2309737967, 19088743, 2309737967, 19088743, 0, 0, 0, 0 };
+  UInt256 expected2 = uint256_create(array2);
+  ASSERT_SAME(expected2, random2);
 }
 
 void test_format_as_hex(TestObjs *objs) {
@@ -186,14 +226,24 @@ void test_format_as_hex(TestObjs *objs) {
   ASSERT(0 == strcmp("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", s));
   free(s);
 
-  UInt256 val = uint256_create_from_u32(187);
+  // test that creating hex from array of 32 bit ints works
+  uint32_t array[8] = {4838373, 58473, 5832, 876, 458, 328, 987, 900};
+  UInt256 val = uint256_create(array);
   s = uint256_format_as_hex(val);
-  ASSERT(0 == strcmp("bb", s));
+  ASSERT(0 == strcmp("384000003db00000148000001ca0000036c000016c80000e4690049d3e5", s));
   free(s);
 
+  // test that creating hex from least significant int works
   UInt256 val2 = uint256_create_from_u32(395948375);
   s = uint256_format_as_hex(val2);
   ASSERT(0 == strcmp("1799b157", s));
+  free(s);
+
+  // test that zeros are truncated from the end but not the front
+  uint32_t array2[8] = {0,0,0,0,5,0,0,0};
+  UInt256 val3 = uint256_create(array2);
+  s = uint256_format_as_hex(val3);
+  ASSERT(0 == strcmp("500000000000000000000000000000000",s));
   free(s);
 }
 
@@ -269,6 +319,25 @@ void test_rotate_left(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xD0000000U == result.data[7]);
+
+  // rotating left by more than 32 bits works as expected
+  result = uint256_rotate_left(objs->rot, 36);
+  ASSERT(0xD0000000U == result.data[0]);
+  ASSERT(0x00000ABCU == result.data[1]);
+  ASSERT(0U == result.data[2]);
+  ASSERT(0U == result.data[3]);
+  ASSERT(0U == result.data[4]);
+  ASSERT(0U == result.data[5]);
+  ASSERT(0U == result.data[6]);
+  ASSERT(0U == result.data[7]);
+
+  // rotating left by more than 256 bits works the same as rotating by bits % 256
+  result = uint256_rotate_left(objs->msb_set, 257);
+  ASSERT_SAME(objs->one, result);
+
+  // rotating left by 256 bits does nothing
+  result = uint256_rotate_left(objs->rot, 256);
+  ASSERT_SAME(objs->rot, result);
 }
 
 void test_rotate_right(TestObjs *objs) {
@@ -290,4 +359,23 @@ void test_rotate_right(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xBCD00000U == result.data[7]);
+
+  //rotating right by more than 32 bits works as expected
+  result = uint256_rotate_right(objs->rot, 68);
+  ASSERT(0U == result.data[0]);
+  ASSERT(0U == result.data[1]);
+  ASSERT(0U == result.data[2]);
+  ASSERT(0U == result.data[3]);
+  ASSERT(0U == result.data[4]);
+  ASSERT(0xBCD00000U == result.data[5]);
+  ASSERT(0x0000000AU == result.data[6]);
+  ASSERT(0U == result.data[7]);
+
+  //rotating right by more than 256 bits works as expected
+  result = uint256_rotate_right(objs->one, 257);
+  ASSERT_SAME(objs->msb_set, result);
+
+  //rotating right by 256 bits does nothing
+  result = uint256_rotate_right(objs->rot, 256);
+  ASSERT_SAME(objs->rot, result);
 }

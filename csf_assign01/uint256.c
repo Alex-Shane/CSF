@@ -61,18 +61,34 @@ UInt256 uint256_create_from_hex(const char *hex) {
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
+  if (isZero(val)) {
+    char *hex = malloc(2*sizeof(char));
+    hex[0] = '0';
+    hex[1] = '\0';
+    return hex;
+  }
   char *hex = malloc(65*sizeof(char));
+  memset(hex, '\0', sizeof(char));
   char *hex_temp = hex;
   for (int i = 7; i >= 0; i--) {
     uint32_t cur_val = val.data[i];
     char buf[9];
     memset(buf, 0, sizeof(buf));
-    sprintf(buf, "%x", cur_val);
+    sprintf(buf, "%08x", cur_val);
     strcpy(hex_temp, buf);
     hex_temp += strlen(buf);
   }
   trimLeadingZeros(hex);
   return hex;
+}
+
+int isZero(UInt256 val) {
+  for (int x = 0; x < 8; x++) {
+    if (val.data[x] != 0) {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 void trimLeadingZeros(char *str) {
@@ -81,13 +97,8 @@ void trimLeadingZeros(char *str) {
     while (str[nonZeroIndex] == '0') {
         nonZeroIndex++;
     }
-    // If string is just leading zeros, make it just '0'
-    if (nonZeroIndex == 8) {
-      str[0] = '0';
-      str[1] = '\0';
-    }
-    // If there are leading zeros and the string isn't '00000000', shift the string to remove them
-    if (nonZeroIndex > 0 && nonZeroIndex < 8) {
+    // If there are leading zeros 
+    if (nonZeroIndex > 0) {
         int length = strlen(str);
         // +1 for the null terminator
         memmove(str, str + nonZeroIndex, length - nonZeroIndex + 1); 
@@ -216,29 +227,6 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
 // the right. Any bits shifted past the least significant bit
 // should be shifted back into the most significant bits.
 UInt256 uint256_rotate_right(UInt256 val, unsigned nbits) {
-  UInt256 result = val;
-  // if shifting more than 256, just circles back to shifting a small amount (257 = shifting 1 bit)
   nbits = nbits % 256;
-  int ints_to_shift = nbits / 32;
-  for (int i = 0; i < ints_to_shift; i++) {
-    uint32_t right_block = result.data[0];
-    for (int k = 0; k < 7; k++) {
-      result.data[k] = result.data[k + 1];
-    }
-    result.data[7] = right_block;
-  }
-
-  uint32_t leftover_bits = nbits % 32;
-  if (leftover_bits > 0) {
-    uint32_t temp = result.data[0];
-    uint32_t spill_over = temp << (32-leftover_bits);
-    result.data[0] = (result.data[0] >> leftover_bits);
-    for (int j = 7; j > 0; j--) {
-      uint32_t temp = result.data[j];
-      result.data[j] = (result.data[j] >> (leftover_bits)) | spill_over;
-      spill_over = temp << (32-leftover_bits);
-    }
-    result.data[7] = result.data[7] | spill_over;
-  }
-  return result;
+  return uint256_rotate_left(val, 256-nbits);
 }
