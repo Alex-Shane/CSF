@@ -112,18 +112,19 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
   uint32_t temp_sum;
   for (int i = 0; i < 8; i++) {
     int bit_sum;
-    cur_left_val = uint256_get_bits(left, i);
-    cur_right_val = uint256_get_bits(right, i);
+    cur_left_val = left.data[i];
+    cur_right_val = right.data[i];
     temp_sum = 0;
     uint32_t cur_left_bit;
     uint32_t cur_right_bit;
-    for (int j = 0; j < 32; j++){
+    for (int j = 0; j < 32; j++) {
         if (j == 0) {
             cur_left_bit = cur_left_val & 1;
             cur_right_bit = cur_right_val & 1;
+            //printf("Left bit: %08x, Right bit: %08x\n, j: %d", cur_left_bit, cur_right_bit, j);
         } else {
-            cur_left_bit = (cur_left_val >> 1) & 1;
-            cur_right_bit = (cur_right_val >> 1) & 1;
+            cur_left_bit = (cur_left_val >> j) & 1;
+            cur_right_bit = (cur_right_val >> j) & 1;
         }
         bit_sum = cur_left_bit + cur_right_bit + carry;
         if (bit_sum > 1) {
