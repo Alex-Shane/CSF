@@ -114,7 +114,46 @@ uint32_t uint256_get_bits(UInt256 val, unsigned index) {
   return bits;
 }
 
+UInt256 uint256_add(UInt256 left, UInt256 right) {
+    UInt256 sum;
+    uint32_t carry_int = 1;
+    uint32_t cur_sum = 0;
+    int carry = 0;
+    int already_spilled;
+    for (int i = 0; i < 8; i++) {
+        already_spilled = 0;
+        cur_sum = left.data[i] + right.data[i];
+        if (carry == 1) {
+            if (cur_sum < left.data[i]) {
+                carry = 1;
+                cur_sum += carry_int;
+                already_spilled = 1;
+            }
+            if (!already_spilled) {
+                cur_sum += carry_int;
+                if (cur_sum < left.data[i]) {
+                    carry = 1;
+                    already_spilled = 1;
+                }
+            }
+            if (!already_spilled) {
+                cur_sum += carry_int;
+                carry = 0;
+            }
+        } else {
+            if (cur_sum < left.data[i]) {
+                carry = 1;
+            } else {
+                carry = 0;
+            }
+        }
+        sum.data[i] = cur_sum;
+    }
+    return sum;
+}
 // Compute the sum of two UInt256 values.
+
+/*
 UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
   uint32_t carry = 0;
@@ -132,8 +171,11 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
         if (j == 0) {
             cur_left_bit = cur_left_val & 1;
             cur_right_bit = cur_right_val & 1;
-            //printf("Left bit: %08x, Right bit: %08x\n, j: %d", cur_left_bit, cur_right_bit, j);
-        } else {
+        /*} else if (j == 1) {
+            cur_left_bit = (cur_left_val >> j) & 1;
+            cur_right_bit = (cur_right_val >> j) & 1;
+            printf("Left bit: %08x, Right bit: %08x, Cur_left_val: %08x, Cur_right_val: %08x\n", cur_left_bit, cur_right_bit, cur_left_val, cur_right_val);
+        }  } else {
             cur_left_bit = (cur_left_val >> j) & 1;
             cur_right_bit = (cur_right_val >> j) & 1;
         }
@@ -145,14 +187,14 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
             carry = 0;
         }
         temp_sum |= bit_sum << j;
-        //printf("j = %d, cur_left_bit = %d, cur_right_bit = %d, bit_sum = %d, carry = %d\n", j, cur_left_bit, cur_right_bit, bit_sum, carry);
+        printf("j = %d, cur_left_bit = %d, cur_right_bit = %d, bit_sum = %d, carry = %d\n", j, cur_left_bit, cur_right_bit, bit_sum, carry);
     }
     sum.data[i] = temp_sum;
     //printf("i = %d, cur_left_val = %08X, cur_right_val = %08X, temp_sum = %08X, carry = %d, bit_sum = %d\n", i, cur_left_val, cur_right_val, temp_sum, carry, bit_sum);
   }
   return sum;
 }
-
+*/
 // Compute the difference of two UInt256 values.
 UInt256 uint256_sub(UInt256 left, UInt256 right) {
   UInt256 result;
@@ -174,7 +216,7 @@ UInt256 uint256_negate(UInt256 val) {
         if (j == 0) {
             cur_bit = cur_data & 1;
         } else {
-            cur_bit = (cur_data >> 1) & 1;
+            cur_bit = (cur_data >> j) & 1;
         }
         //printf("cur_bit: %d\n", cur_bit);
         if (cur_bit == 1) {
@@ -189,8 +231,12 @@ UInt256 uint256_negate(UInt256 val) {
     //printf("Negated data: %08x, i: %d\n", negated_data, i);
    }
    uint32_t one_partial_bit = 1;
+   //result.data[0] = one_partial_bit + result.data[0];
    UInt256 one_full_bit = uint256_create_from_u32(one_partial_bit);
+   //printf("Result pre addition: %08x\n", result.data[0]);
    result = uint256_add(result, one_full_bit);
+   //printf("Result post addition: %08x\n", result.data[0]);
+
   return result;
 }
 
