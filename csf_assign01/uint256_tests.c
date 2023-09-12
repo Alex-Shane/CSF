@@ -230,6 +230,7 @@ void test_negate(TestObjs *objs) {
   UInt256 result;
 
   result = uint256_negate(objs->zero);
+  printf("%d   %d", result.data[5], objs->zero.data[5]);
   ASSERT_SAME(objs->zero, result);
 
   result = uint256_negate(objs->one);

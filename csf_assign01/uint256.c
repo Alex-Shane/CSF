@@ -118,37 +118,24 @@ uint32_t uint256_get_bits(UInt256 val, unsigned index) {
 UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
   uint32_t carry = 0;
-  uint32_t cur_left_val;
-  uint32_t cur_right_val;
-  uint32_t temp_sum;
-  for (int i = 0; i < 8; i++) {
-    int bit_sum;
-    cur_left_val = left.data[i];
-    cur_right_val = right.data[i];
-    temp_sum = 0;
-    uint32_t cur_left_bit;
-    uint32_t cur_right_bit;
-    for (int j = 0; j < 32; j++) {
-        if (j == 0) {
-            cur_left_bit = cur_left_val & 1;
-            cur_right_bit = cur_right_val & 1;
-            //printf("Left bit: %08x, Right bit: %08x\n, j: %d", cur_left_bit, cur_right_bit, j);
-        } else {
-            cur_left_bit = (cur_left_val >> j) & 1;
-            cur_right_bit = (cur_right_val >> j) & 1;
-        }
-        bit_sum = cur_left_bit + cur_right_bit + carry;
-        if (bit_sum > 1) {
-            carry = bit_sum - 1;
-            bit_sum %= 2;
-        } else {
-            carry = 0;
-        }
-        temp_sum |= bit_sum << j;
-        //printf("j = %d, cur_left_bit = %d, cur_right_bit = %d, bit_sum = %d, carry = %d\n", j, cur_left_bit, cur_right_bit, bit_sum, carry);
+  for (int x = 0; x < 8; x++) {
+    uint32_t left_val = left.data[x];
+    uint32_t right_val = right.data[x]; 
+    uint32_t cur_sum = left_val + right_val + carry;
+    sum.data[x] = (uint32_t)(cur_sum);
+    // if left_val greater than cur_sum, that means we used carry from previous block, and need another carry
+    // if left_val equals cur_sum, we check if we carried a value from the previous block
+    //    if no, then carry stays zero, and if we did use carry from previous block, carry stays a 1
+    if (cur_sum < left_val) {
+      carry = 1;
     }
-    sum.data[i] = temp_sum;
-    //printf("i = %d, cur_left_val = %08X, cur_right_val = %08X, temp_sum = %08X, carry = %d, bit_sum = %d\n", i, cur_left_val, cur_right_val, temp_sum, carry, bit_sum);
+    else if (cur_sum == left_val) {
+      continue; // don't need to change carry in this case
+    }
+    else {
+      carry = 0;
+    }
+    //carry = (cur_sum < left_val) ? 1 : ((cur_sum == left_val) ? carry : 0);
   }
   return sum;
 }
@@ -157,40 +144,17 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
 UInt256 uint256_sub(UInt256 left, UInt256 right) {
   UInt256 result;
   UInt256 negated_right = uint256_negate(right);
-  result = uint256_add(negated_right, left);
+  result = uint256_add(left, negated_right);
   return result;
 }
 // Return the two's-complement negation of the given UInt256 value.
 UInt256 uint256_negate(UInt256 val) {
   UInt256 result;
-  uint32_t cur_data;
-  uint32_t cur_bit;
-  uint32_t negated_data;
-  for (int i = 0; i < 8; i++) {
-    cur_data = uint256_get_bits(val, i);
-    negated_data = 0;
-    //printf("result data: %d\n", result.data[i]);
-    for (int j = 0; j < 32; j++) {
-        if (j == 0) {
-            cur_bit = cur_data & 1;
-        } else {
-            cur_bit = (cur_data >> 1) & 1;
-        }
-        //printf("cur_bit: %d\n", cur_bit);
-        if (cur_bit == 1) {
-            cur_bit = 0;
-        } else {
-            cur_bit = 1;
-        }
-        //printf("cur_bit post flip: %d\n", cur_bit);
-        negated_data |= cur_bit << j;
-    }
-    result.data[i] = negated_data;
-    //printf("Negated data: %08x, i: %d\n", negated_data, i);
-   }
-   uint32_t one_partial_bit = 1;
-   UInt256 one_full_bit = uint256_create_from_u32(one_partial_bit);
-   result = uint256_add(result, one_full_bit);
+  for (int k = 0; k < 8; k++) {
+    // negate the bits
+    result.data[k] = ~val.data[k];
+  }
+  result = uint256_add(result, uint256_create_from_u32(1));
   return result;
 }
 
