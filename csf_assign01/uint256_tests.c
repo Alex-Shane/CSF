@@ -198,9 +198,9 @@ void test_format_as_hex(TestObjs *objs) {
   ASSERT(0 == strcmp("bb", s));
   free(s);
 
-  UInt256 val2 = uint256_create_from_u32(39594837);
+  UInt256 val2 = uint256_create_from_u32(395948375);
   s = uint256_format_as_hex(val2);
-  ASSERT(0 == strcmp("25d4e35", s));
+  ASSERT(0 == strcmp("1799b157", s));
   free(s);
 }
 
