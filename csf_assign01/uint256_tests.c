@@ -38,14 +38,15 @@ TestObjs *setup(void);
 void cleanup(TestObjs *objs);
 
 // Declarations of test functions
+void test_sub(TestObjs *objs);
+void test_add(TestObjs *objs);
+void test_negate(TestObjs *objs);
 void test_get_bits(TestObjs *objs);
 void test_create_from_u32(TestObjs *objs);
 void test_create(TestObjs *objs);
 void test_create_from_hex(TestObjs *objs);
 void test_format_as_hex(TestObjs *objs);
-/*void test_add(TestObjs *objs);
-void test_sub(TestObjs *objs);
-void test_negate(TestObjs *objs);
+/*
 void test_rotate_left(TestObjs *objs);
 void test_rotate_right(TestObjs *objs);
 */
@@ -57,14 +58,16 @@ int main(int argc, char **argv) {
 
   TEST_INIT();
 
+  TEST(test_sub);
+  TEST(test_add);
+  TEST(test_negate);
   TEST(test_get_bits);
   TEST(test_create_from_u32);
   TEST(test_create);
   TEST(test_create_from_hex);
   TEST(test_format_as_hex);
-  /*TEST(test_add);
-  TEST(test_sub);
-  TEST(test_negate);
+  /*
+
   TEST(test_rotate_left);
   TEST(test_rotate_right);
   */
@@ -182,6 +185,13 @@ void test_format_as_hex(TestObjs *objs) {
   s = uint256_format_as_hex(objs->max);
   ASSERT(0 == strcmp("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", s));
   free(s);
+}
+
+void uint256_print(const UInt256 *val) {
+  for (int i = 7; i >= 0; i--) {
+    printf("%08x ", val->data[i]);
+  }
+  printf("\n");
 }
 
 void test_add(TestObjs *objs) {
