@@ -32,39 +32,36 @@ UInt256 uint256_create(const uint32_t data[8]) {
 UInt256 uint256_create_from_hex(const char *hex) {
   UInt256 result;
   int len = strlen(hex);
-  const char *cur = len == 1 ? hex : hex + len - 1;
-  int remaining = len; // Initialize the remaining characters to read
-  for (int i = 0; i < 64; i += 8) {
-      if (remaining <= 0) {
-        result.data[i/8] = 0;
-      }
-      else {
-        // Calculate the number of characters to read for the current int we want
-        int read_size = remaining < 8 ? remaining : 8;
-        // provide store for up to 8 hex digits plus null terminator
-        char cur_int[read_size+1]; 
-        // set storage to all zeros
-        memset(cur_int, 0, sizeof(cur_int));
-        for (int x = 0; x < 8; x++) {
-          // if we stil have digits to read, read them
-          if (x < read_size) {
-            cur_int[x] = *cur; 
-          }
-          cur--;
-        }
-        cur_int[read_size] = '\0';
-        uint32_t value = (uint32_t)strtoul(cur_int, NULL, 16);
-        result.data[i / 8] = value;
-        remaining -= read_size;
-      }
+  int index = 0;
+  for (int k = len; k >= 0; k-=8) {
+    if (index == 8) {
+      break;
     }
+    else {
+      int digits_to_read = k >= 8 ? 8 : k;
+      const char* chunk = hex + (k - digits_to_read);
+      // account for null terminator
+      char* read = malloc(9*sizeof(char)); 
+      strncpy(read, chunk, digits_to_read);
+      // explicity set null terminator
+      read[digits_to_read] = '\0';
+      result.data[index] = strtoul(read, NULL, 16);
+      free(read);
+      index++;
+    }
+  }
+  // if not all indexes have been initialized, make the remaining ones zero
+  while (index != 8) {
+    result.data[index] = 0;
+    index++;
+  }
   return result;
 }
 
 // Return a dynamically-allocated string of hex digits representing the
 // given UInt256 value.
 char *uint256_format_as_hex(UInt256 val) {
-  char *hex = (char*) malloc(65);
+  char *hex = malloc(65*sizeof(char));
   char *hex_temp = hex;
   for (int i = 7; i >= 0; i--) {
     uint32_t cur_val = val.data[i];

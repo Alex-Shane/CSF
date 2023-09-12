@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tctest.h"
 
 #include "uint256.h"
@@ -190,6 +191,16 @@ void test_format_as_hex(TestObjs *objs) {
 
   s = uint256_format_as_hex(objs->max);
   ASSERT(0 == strcmp("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", s));
+  free(s);
+
+  UInt256 val = uint256_create_from_u32(187);
+  s = uint256_format_as_hex(val);
+  ASSERT(0 == strcmp("bb", s));
+  free(s);
+
+  UInt256 val2 = uint256_create_from_u32(39594837);
+  s = uint256_format_as_hex(val2);
+  ASSERT(0 == strcmp("25d4e35", s));
   free(s);
 }
 
