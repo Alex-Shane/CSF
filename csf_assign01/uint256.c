@@ -147,7 +147,7 @@ UInt256 uint256_sub(UInt256 left, UInt256 right) {
   UInt256 negated_right = uint256_negate(right);
   result = uint256_add(negated_right, left);
   return result;
-
+}
 // Return the two's-complement negation of the given UInt256 value.
 UInt256 uint256_negate(UInt256 val) {
   UInt256 result;
