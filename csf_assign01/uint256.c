@@ -106,21 +106,79 @@ uint32_t uint256_get_bits(UInt256 val, unsigned index) {
 // Compute the sum of two UInt256 values.
 UInt256 uint256_add(UInt256 left, UInt256 right) {
   UInt256 sum;
-  // TODO: implement
+  uint32_t carry = 0;
+  uint32_t cur_left_val;
+  uint32_t cur_right_val;
+  uint32_t temp_sum;
+  for (int i = 0; i < 8; i++) {
+    int bit_sum;
+    cur_left_val = uint256_get_bits(left, i);
+    cur_right_val = uint256_get_bits(right, i);
+    temp_sum = 0;
+    uint32_t cur_left_bit;
+    uint32_t cur_right_bit;
+    for (int j = 0; j < 32; j++){
+        if (j == 0) {
+            cur_left_bit = cur_left_val & 1;
+            cur_right_bit = cur_right_val & 1;
+        } else {
+            cur_left_bit = (cur_left_val >> 1) & 1;
+            cur_right_bit = (cur_right_val >> 1) & 1;
+        }
+        bit_sum = cur_left_bit + cur_right_bit + carry;
+        if (bit_sum > 1) {
+            carry = bit_sum - 1;
+            bit_sum %= 2;
+        } else {
+            carry = 0;
+        }
+        temp_sum |= bit_sum << j;
+        //printf("j = %d, cur_left_bit = %d, cur_right_bit = %d, bit_sum = %d, carry = %d\n", j, cur_left_bit, cur_right_bit, bit_sum, carry);
+    }
+    sum.data[i] = temp_sum;
+    //printf("i = %d, cur_left_val = %08X, cur_right_val = %08X, temp_sum = %08X, carry = %d, bit_sum = %d\n", i, cur_left_val, cur_right_val, temp_sum, carry, bit_sum);
+  }
   return sum;
 }
 
 // Compute the difference of two UInt256 values.
 UInt256 uint256_sub(UInt256 left, UInt256 right) {
   UInt256 result;
-  // TODO: implement
+  UInt256 negated_right = uint256_negate(right);
+  result = uint256_add(negated_right, left);
   return result;
-}
 
 // Return the two's-complement negation of the given UInt256 value.
 UInt256 uint256_negate(UInt256 val) {
   UInt256 result;
-  // TODO: implement
+  uint32_t cur_data;
+  uint32_t cur_bit;
+  uint32_t negated_data;
+  for (int i = 0; i < 8; i++) {
+    cur_data = uint256_get_bits(val, i);
+    negated_data = 0;
+    //printf("result data: %d\n", result.data[i]);
+    for (int j = 0; j < 32; j++) {
+        if (j == 0) {
+            cur_bit = cur_data & 1;
+        } else {
+            cur_bit = (cur_data >> 1) & 1;
+        }
+        //printf("cur_bit: %d\n", cur_bit);
+        if (cur_bit == 1) {
+            cur_bit = 0;
+        } else {
+            cur_bit = 1;
+        }
+        //printf("cur_bit post flip: %d\n", cur_bit);
+        negated_data |= cur_bit << j;
+    }
+    result.data[i] = negated_data;
+    //printf("Negated data: %08x, i: %d\n", negated_data, i);
+   }
+   uint32_t one_partial_bit = 1;
+   UInt256 one_full_bit = uint256_create_from_u32(one_partial_bit);
+   result = uint256_add(result, one_full_bit);
   return result;
 }
 
