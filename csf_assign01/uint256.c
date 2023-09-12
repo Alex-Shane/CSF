@@ -118,24 +118,23 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
     UInt256 sum;
     uint32_t carry = 0;
     for (int x = 0; x < 8; x++) {
-    uint32_t left_val = left.data[x];
-    uint32_t right_val = right.data[x]; 
-    uint32_t cur_sum = left_val + right_val + carry;
-    sum.data[x] = (uint32_t)(cur_sum);
-    // if left_val greater than cur_sum, that means we used carry from previous block, and need another carry
-    // if left_val equals cur_sum, we check if we carried a value from the previous block
-    //    if no, then carry stays zero, and if we did use carry from previous block, carry stays a 1
-    if (cur_sum < left_val) {
-      carry = 1;
+      uint32_t left_val = left.data[x];
+      uint32_t right_val = right.data[x]; 
+      uint32_t cur_sum = left_val + right_val + carry;
+      sum.data[x] = (uint32_t)(cur_sum);
+      // if left_val greater than cur_sum, that means we used carry from previous block, and need another carry
+      // if left_val equals cur_sum, we check if we carried a value from the previous block
+      //    if no, then carry stays zero, and if we did use carry from previous block, carry stays a 1
+      if (cur_sum < left_val) {
+        carry = 1;
+      }
+      else if (cur_sum == left_val) {
+        continue; // don't need to change carry in this case
+      }
+      else {
+        carry = 0;
+      }
     }
-    else if (cur_sum == left_val) {
-      continue; // don't need to change carry in this case
-    }
-    else {
-      carry = 0;
-    }
-    //carry = (cur_sum < left_val) ? 1 : ((cur_sum == left_val) ? carry : 0);
-  }
     return sum;
 }
 
