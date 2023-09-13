@@ -235,6 +235,10 @@ void test_create_from_hex(TestObjs *objs) {
   uint32_t array2[8] = {2309737967, 19088743, 2309737967, 19088743, 0, 0, 0, 0 };
   UInt256 expected2 = uint256_create(array2);
   ASSERT_SAME(expected2, random2);
+
+  // test create_from_hex on empty string returns zero
+  UInt256 zero_test = uint256_create_from_hex("");
+  ASSERT_SAME(objs->zero, zero_test);
 }
 
 void test_format_as_hex(TestObjs *objs) {
@@ -560,7 +564,7 @@ void test_rotate_left(TestObjs *objs) {
   ASSERT(0U == result.data[6]);
   ASSERT(0xD0000000U == result.data[7]);
 
-  // rotate by multiple of 32 works as expected
+  // test rotate by multiple of 32 works as expected
   result = uint256_rotate_left(objs->rot, 64);
   ASSERT(0U == result.data[0]);
   ASSERT(0xCD000000U == result.data[1]);
