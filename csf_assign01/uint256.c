@@ -186,11 +186,11 @@ UInt256 uint256_rotate_left(UInt256 val, unsigned nbits) {
     for (int x = 0; x < 8; x++) {
       uint32_t temp = result.data[x];
       result.data[x] = (result.data[x] << leftover_bits) | spill_over;
-      // get spill over from old temp value with bits shifted to the right, since spillover goes in rightmost positions
-      // in the block its shifted to
+      // get spill over from old temp value with bits shifted to the right, since spillover 
+      // goes in rightmost positions in the block its shifted to
       spill_over = temp >> (32-leftover_bits);
     }
-    // need to updated right most block one last time for spill over from left most block
+    // need to update right most block one last time for spill over from left most block
     result.data[0] = result.data[0] | spill_over;
   }
   return result;

@@ -34,6 +34,7 @@ char *uint256_format_as_hex(UInt256 val);
 // Helper function for uint256_format_as_hex to trim zeros off final string
 void trimLeadingZeros(char *str);
 
+// Helper function for uint256_format_as_hex to check if given value is zero
 int isZero(UInt256 val);
 
 // Get 32 bits of data from a UInt256 value.
