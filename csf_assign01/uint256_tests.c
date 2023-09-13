@@ -257,15 +257,92 @@ void test_format_as_hex(TestObjs *objs) {
   free(s);
 }
 
-void uint256_print(const UInt256 *val) {
-  for (int i = 7; i >= 0; i--) {
-    printf("%08x ", val->data[i]);
-  }
-  printf("\n");
-}
 
 void test_add(TestObjs *objs) {
   UInt256 result;
+  UInt256 right, left;
+
+  //overflow
+  left.data[0] = 0x0U;
+  left.data[1] = 0x0U;
+  left.data[2] = 0x0U;
+  left.data[3] = 0x0U;
+  left.data[4] = 0x0U;
+  left.data[5] = 0x0U;
+  left.data[6] = 0x0U;
+  left.data[7] = 0x80000000U;
+  right.data[0] = 0xffffffffU;
+  right.data[1] = 0xffffffffU;
+  right.data[2] = 0xffffffffU;
+  right.data[3] = 0xffffffffU;
+  right.data[4] = 0xffffffffU;
+  right.data[5] = 0xffffffffU;
+  right.data[6] = 0xffffffffU;
+  right.data[7] = 0x7fffffffU;
+  result = uint256_add(left, right);
+  ASSERT(0xffffffffU == result.data[0]);
+  ASSERT(0xffffffffU == result.data[1]);
+  ASSERT(0xffffffffU == result.data[2]);
+  ASSERT(0xffffffffU == result.data[3]);
+  ASSERT(0xffffffffU == result.data[4]);
+  ASSERT(0xffffffffU == result.data[5]);
+  ASSERT(0xffffffffU == result.data[6]);
+  ASSERT(0xffffffffU == result.data[7]);
+
+  //addition with random ints
+  left.data[0] = 0xce54751U;
+  left.data[1] = 0x333c64e6U;
+  left.data[2] = 0x89796915U;
+  left.data[3] = 0x5505e795U;
+  left.data[4] = 0xd39e4c38U;
+  left.data[5] = 0x27eb52efU;
+  left.data[6] = 0xea08af5aU;
+  left.data[7] = 0x120c61ffU;
+  right.data[0] = 0x3d55e2adU;
+  right.data[1] = 0x42be553bU;
+  right.data[2] = 0x1283820eU;
+  right.data[3] = 0x4fd34973U;
+  right.data[4] = 0xfed1570eU;
+  right.data[5] = 0xdab441aeU;
+  right.data[6] = 0x67d33523U;
+  right.data[7] = 0x1a809ea5U;
+  result = uint256_add(left, right);
+  ASSERT(0x4a3b29feU == result.data[0]);
+  ASSERT(0x75faba21U == result.data[1]);
+  ASSERT(0x9bfceb23U == result.data[2]);
+  ASSERT(0xa4d93108U == result.data[3]);
+  ASSERT(0xd26fa346U == result.data[4]);
+  ASSERT(0x029f949eU == result.data[5]);
+  ASSERT(0x51dbe47eU == result.data[6]);
+  ASSERT(0x2c8d00a5U == result.data[7]);
+
+  //addition with two large ints
+  left.data[0] = 0xffffffffU;
+  left.data[1] = 0xffffffffU;
+  left.data[2] = 0xffffffffU;
+  left.data[3] = 0xffffffffU;
+  left.data[4] = 0xffffffffU;
+  left.data[5] = 0xffffffffU;
+  left.data[6] = 0xffffffffU;
+  left.data[7] = 0xffffffffU;
+  right.data[0] = 0xffffffffU;
+  right.data[1] = 0xffffffffU;
+  right.data[2] = 0xffffffffU;
+  right.data[3] = 0xffffffffU;
+  right.data[4] = 0xffffffffU;
+  right.data[5] = 0xffffffffU;
+  right.data[6] = 0xffffffffU;
+  right.data[7] = 0x7fffffffU;
+  result = uint256_add(left, right);
+  ASSERT(0xfffffffeU == result.data[0]);
+  ASSERT(0xffffffffU == result.data[1]);
+  ASSERT(0xffffffffU == result.data[2]);
+  ASSERT(0xffffffffU == result.data[3]);
+  ASSERT(0xffffffffU == result.data[4]);
+  ASSERT(0xffffffffU == result.data[5]);
+  ASSERT(0xffffffffU == result.data[6]);
+  ASSERT(0x7fffffffU == result.data[7]);
+
 
   result = uint256_add(objs->zero, objs->zero);
   ASSERT_SAME(objs->zero, result);
@@ -284,7 +361,82 @@ void test_add(TestObjs *objs) {
 }
 
 void test_sub(TestObjs *objs) {
-  UInt256 result;
+  UInt256 result, left, right;
+
+  // subtraction with overflow
+  left.data[0] = 0x0000001U;
+  left.data[1] = 0x0U;
+  left.data[2] = 0x0U;
+  left.data[3] = 0x0U;
+  left.data[4] = 0x0U;
+  left.data[5] = 0x0U;
+  left.data[6] = 0x0U;
+  left.data[7] = 0x0U;
+  right.data[0] = 0x0U;
+  right.data[1] = 0x0U;
+  right.data[2] = 0x0U;
+  right.data[3] = 0x0U;
+  right.data[4] = 0x0U;
+  right.data[5] = 0x0U;
+  right.data[6] = 0x0U;
+  right.data[7] = 0x80000000U;
+  result = uint256_add(left, right);
+  ASSERT(0x00000001U == result.data[0]);
+  ASSERT(0x0U == result.data[1]);
+  ASSERT(0x0U == result.data[2]);
+  ASSERT(0x0U == result.data[3]);
+  ASSERT(0x0U == result.data[4]);
+  ASSERT(0x0U == result.data[5]);
+  ASSERT(0x0U== result.data[6]);
+  ASSERT(0x80000000U == result.data[7]);
+
+  //subtraction with random ints
+  left.data[0] = 0xce54751U;
+  left.data[1] = 0x333c64e6U;
+  left.data[2] = 0x89796915U;
+  left.data[3] = 0x5505e795U;
+  left.data[4] = 0xd39e4c38U;
+  left.data[5] = 0x27eb52efU;
+  left.data[6] = 0xea08af5aU;
+  left.data[7] = 0x120c61ffU;
+  right.data[0] = 0x3d55e2adU;
+  right.data[1] = 0x42be553bU;
+  right.data[2] = 0x1283820eU;
+  right.data[3] = 0x4fd34973U;
+  right.data[4] = 0xfed1570eU;
+  right.data[5] = 0xdab441aeU;
+  right.data[6] = 0x67d33523U;
+  right.data[7] = 0x1a809ea5U;
+  result = uint256_sub(left, right);
+  ASSERT(0xcf8f64a4U == result.data[0]);
+  ASSERT(0xf07e0faaU == result.data[1]);
+  ASSERT(0x76f5e706U == result.data[2]);
+  ASSERT(0x05329e22U == result.data[3]);
+  ASSERT(0xd4ccf52aU == result.data[4]);
+  ASSERT(0x4d371140U == result.data[5]);
+  ASSERT(0x82357a36U == result.data[6]);
+  ASSERT(0xf78bc35aU == result.data[7]);
+
+  //max - 1
+  UInt256 max_minus_1;
+  right.data[0] = 0x00000001U;
+  right.data[1] = 0x0U;
+  right.data[2] = 0x0U;
+  right.data[3] = 0x0U;
+  right.data[4] = 0x0U;
+  right.data[5] = 0x0U;
+  right.data[6] = 0x0U;
+  right.data[7] = 0x0U;
+  max_minus_1.data[0] = 0xfffffffe;
+  max_minus_1.data[1] = 0xffffffff;
+  max_minus_1.data[2] = 0xffffffff;
+  max_minus_1.data[3] = 0xffffffff;
+  max_minus_1.data[4] = 0xffffffff;
+  max_minus_1.data[5] = 0xffffffff;
+  max_minus_1.data[6] = 0xffffffff;
+  max_minus_1.data[7] = 0xffffffff;
+  result = uint256_sub(objs->max, right);
+  ASSERT_SAME(result, max_minus_1);
 
   result = uint256_sub(objs->zero, objs->zero);
   ASSERT_SAME(objs->zero, result);
@@ -298,6 +450,61 @@ void test_sub(TestObjs *objs) {
 
 void test_negate(TestObjs *objs) {
   UInt256 result;
+
+  // negation of large negative number
+  UInt256 negate_test_one;
+  negate_test_one.data[0] = 0;
+  negate_test_one.data[1] = 0;
+  negate_test_one.data[2] = 0;
+  negate_test_one.data[3] = 0;
+  negate_test_one.data[4] = 0;
+  negate_test_one.data[5] = 0;
+  negate_test_one.data[6] = 0;
+  negate_test_one.data[7] = -2147483648;
+  result = uint256_negate(negate_test_one);
+  ASSERT_SAME(negate_test_one, result);
+
+  //negation of arbitrary number without carryover when adding 1
+  UInt256 negate_test_two, negate_test_two_result;
+  negate_test_two.data[0] = 1;
+  negate_test_two.data[1] = 2;
+  negate_test_two.data[2] = 3;
+  negate_test_two.data[3] = 4;
+  negate_test_two.data[4] = 5;
+  negate_test_two.data[5] = 6;
+  negate_test_two.data[6] = 7;
+  negate_test_two.data[7] = 8;
+  negate_test_two_result.data[0] = -1;
+  negate_test_two_result.data[1] = -3;
+  negate_test_two_result.data[2] = -4;
+  negate_test_two_result.data[3] = -5;
+  negate_test_two_result.data[4] = -6;
+  negate_test_two_result.data[5] = -7;
+  negate_test_two_result.data[6] = -8;
+  negate_test_two_result.data[7] = -9;
+  result = uint256_negate(negate_test_two);
+  ASSERT_SAME(negate_test_two_result, result);
+
+  //negation resulting in overflow
+  UInt256 negate_test_three, negate_test_three_result;
+  negate_test_three.data[0] = -2147483647;
+  negate_test_three.data[1] = 0;
+  negate_test_three.data[2] = 0;
+  negate_test_three.data[3] = 0;
+  negate_test_three.data[4] = 0;
+  negate_test_three.data[5] = 0;
+  negate_test_three.data[6] = 0;
+  negate_test_three.data[7] = 0;
+  negate_test_three_result.data[0] = 2147483647;
+  negate_test_three_result.data[1] = -1;
+  negate_test_three_result.data[2] = -1;
+  negate_test_three_result.data[3] = -1;
+  negate_test_three_result.data[4] = -1;
+  negate_test_three_result.data[5] = -1;
+  negate_test_three_result.data[6] = -1;
+  negate_test_three_result.data[7] = -1;
+  result = uint256_negate(negate_test_three);
+  ASSERT_SAME(negate_test_three_result, result);
 
   result = uint256_negate(objs->zero);
   ASSERT_SAME(objs->zero, result);
