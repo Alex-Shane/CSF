@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "tctest.h"
@@ -140,6 +141,16 @@ void test_get_bits(TestObjs *objs) {
   ASSERT(0U == uint256_get_bits(objs->rot, 5));
   ASSERT(0U == uint256_get_bits(objs->rot, 6));
   ASSERT(0xCD000000U == uint256_get_bits(objs->rot, 7));
+
+  // add test for git bits with msb_set
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 0));
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 1));
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 2));
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 3));
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 4));
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 5));
+  ASSERT(0U == uint256_get_bits(objs->msb_set, 6));
+  ASSERT(0x80000000U == uint256_get_bits(objs->msb_set, 7));
 }
 
 void test_create_from_u32(TestObjs *objs) {
@@ -192,6 +203,11 @@ void test_create(TestObjs *objs) {
   uint32_t data3[8] = {0,0,0,0,0,0,0,0};
   UInt256 zero_test = uint256_create(data3);
   ASSERT_SAME(objs->zero, zero_test);
+
+  // test create against max
+  uint32_t data4[8] = {0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU};
+  UInt256 max_test = uint256_create(data4);
+  ASSERT_SAME(objs->max, max_test);
 }
 
 void test_create_from_hex(TestObjs *objs) {
@@ -262,7 +278,7 @@ void test_add(TestObjs *objs) {
   UInt256 result;
   UInt256 right, left;
 
-  //overflow
+  // testing overflow handled properly
   left.data[0] = 0x0U;
   left.data[1] = 0x0U;
   left.data[2] = 0x0U;
@@ -289,7 +305,7 @@ void test_add(TestObjs *objs) {
   ASSERT(0xffffffffU == result.data[6]);
   ASSERT(0xffffffffU == result.data[7]);
 
-  //addition with random ints
+  //testing addition with random ints 
   left.data[0] = 0xce54751U;
   left.data[1] = 0x333c64e6U;
   left.data[2] = 0x89796915U;
@@ -316,7 +332,7 @@ void test_add(TestObjs *objs) {
   ASSERT(0x51dbe47eU == result.data[6]);
   ASSERT(0x2c8d00a5U == result.data[7]);
 
-  //addition with two large ints
+  // testing addition with two large ints 
   left.data[0] = 0xffffffffU;
   left.data[1] = 0xffffffffU;
   left.data[2] = 0xffffffffU;
@@ -343,18 +359,19 @@ void test_add(TestObjs *objs) {
   ASSERT(0xffffffffU == result.data[6]);
   ASSERT(0x7fffffffU == result.data[7]);
 
+  // test that adding same number results in number times 2
+  uint32_t two_data[8] = { 2U };
+  UInt256 two;
+  INIT_FROM_ARR(two, two_data);
+  result = uint256_add(objs->one, objs->one);
+  ASSERT_SAME(two, result);
+
 
   result = uint256_add(objs->zero, objs->zero);
   ASSERT_SAME(objs->zero, result);
 
   result = uint256_add(objs->zero, objs->one);
   ASSERT_SAME(objs->one, result);
-
-  uint32_t two_data[8] = { 2U };
-  UInt256 two;
-  INIT_FROM_ARR(two, two_data);
-  result = uint256_add(objs->one, objs->one);
-  ASSERT_SAME(two, result);
 
   result = uint256_add(objs->max, objs->one);
   ASSERT_SAME(objs->zero, result);
@@ -363,7 +380,7 @@ void test_add(TestObjs *objs) {
 void test_sub(TestObjs *objs) {
   UInt256 result, left, right;
 
-  // subtraction with overflow
+  // testing subtraction with overflow
   left.data[0] = 0x0000001U;
   left.data[1] = 0x0U;
   left.data[2] = 0x0U;
@@ -390,7 +407,7 @@ void test_sub(TestObjs *objs) {
   ASSERT(0x0U== result.data[6]);
   ASSERT(0x80000000U == result.data[7]);
 
-  //subtraction with random ints
+  // testing subtraction with random ints
   left.data[0] = 0xce54751U;
   left.data[1] = 0x333c64e6U;
   left.data[2] = 0x89796915U;
@@ -417,7 +434,7 @@ void test_sub(TestObjs *objs) {
   ASSERT(0x82357a36U == result.data[6]);
   ASSERT(0xf78bc35aU == result.data[7]);
 
-  //max - 1
+  // testing substraction with max-1
   UInt256 max_minus_1;
   right.data[0] = 0x00000001U;
   right.data[1] = 0x0U;
@@ -438,6 +455,12 @@ void test_sub(TestObjs *objs) {
   result = uint256_sub(objs->max, right);
   ASSERT_SAME(result, max_minus_1);
 
+  // test subtracting same number results in zero
+  uint32_t five = 5;
+  UInt256 five_test = uint256_create_from_u32(five);
+  result = uint256_sub(five_test, five_test);
+  ASSERT_SAME(objs->zero, result);
+
   result = uint256_sub(objs->zero, objs->zero);
   ASSERT_SAME(objs->zero, result);
 
@@ -451,7 +474,7 @@ void test_sub(TestObjs *objs) {
 void test_negate(TestObjs *objs) {
   UInt256 result;
 
-  // negation of large negative number
+  // testing negation of large negative number
   UInt256 negate_test_one;
   negate_test_one.data[0] = 0;
   negate_test_one.data[1] = 0;
@@ -464,7 +487,7 @@ void test_negate(TestObjs *objs) {
   result = uint256_negate(negate_test_one);
   ASSERT_SAME(negate_test_one, result);
 
-  //negation of arbitrary number without carryover when adding 1
+  // testing negation of arbitrary number without carryover when adding 1
   UInt256 negate_test_two, negate_test_two_result;
   negate_test_two.data[0] = 1;
   negate_test_two.data[1] = 2;
@@ -485,7 +508,7 @@ void test_negate(TestObjs *objs) {
   result = uint256_negate(negate_test_two);
   ASSERT_SAME(negate_test_two_result, result);
 
-  //negation resulting in overflow
+  // testing negation resulting in overflow
   UInt256 negate_test_three, negate_test_three_result;
   negate_test_three.data[0] = -2147483647;
   negate_test_three.data[1] = 0;
@@ -537,6 +560,17 @@ void test_rotate_left(TestObjs *objs) {
   ASSERT(0U == result.data[6]);
   ASSERT(0xD0000000U == result.data[7]);
 
+  // rotate by multiple of 32 works as expected
+  result = uint256_rotate_left(objs->rot, 64);
+  ASSERT(0U == result.data[0]);
+  ASSERT(0xCD000000U == result.data[1]);
+  ASSERT(0x000000ABU == result.data[2]);
+  ASSERT(0U == result.data[3]);
+  ASSERT(0U == result.data[4]);
+  ASSERT(0U == result.data[5]);
+  ASSERT(0U == result.data[6]);
+  ASSERT(0U == result.data[7]);
+
   // rotating left by more than 32 bits works as expected
   result = uint256_rotate_left(objs->rot, 36);
   ASSERT(0xD0000000U == result.data[0]);
@@ -576,6 +610,17 @@ void test_rotate_right(TestObjs *objs) {
   ASSERT(0U == result.data[5]);
   ASSERT(0U == result.data[6]);
   ASSERT(0xBCD00000U == result.data[7]);
+
+  // rotate by multiple of 32 works as expected
+  result = uint256_rotate_right(objs->rot, 64);
+  ASSERT(0U == result.data[0]);
+  ASSERT(0U == result.data[1]);
+  ASSERT(0U == result.data[2]);
+  ASSERT(0U == result.data[3]);
+  ASSERT(0U == result.data[4]);
+  ASSERT(0xCD000000U == result.data[5]);
+  ASSERT(0x000000ABU == result.data[6]);
+  ASSERT(0U == result.data[7]);
 
   //rotating right by more than 32 bits works as expected
   result = uint256_rotate_right(objs->rot, 68);
