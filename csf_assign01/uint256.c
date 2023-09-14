@@ -134,7 +134,7 @@ UInt256 uint256_add(UInt256 left, UInt256 right) {
     else if (cur_sum == left_val) {
       continue;
     }
-    // if cur_sum > left_val, addition worked normally with no carry, so carry becomes zero
+    // if cur_sum > left_val, addition was normal and carry can return to zero
     else {
       carry = 0;
     }
