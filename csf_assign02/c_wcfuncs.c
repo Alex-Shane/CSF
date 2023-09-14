@@ -113,13 +113,37 @@ int wc_readnext(FILE *in, unsigned char *w) {
 // Convert the NUL-terminated character string in the array
 // pointed-to by w so that every letter is lower-case.
 void wc_tolower(unsigned char *w) {
-  // TODO: implement
+  unsigned char* curr = w;
+  int len = 0;
+  while(*curr != '\0') {
+    unsigned char c = *curr;
+    // only fix letters
+    if (wc_isalpha(c)) {
+      // only fix uppcase letters to lower
+      if (c >= 'A' && c < 'a') {
+        c = c + 32;
+      }
+    }
+  }
 }
 
 // Remove any non-alphaabetic characters from the end of the
 // NUL-terminated character string pointed-to by w.
 void wc_trim_non_alpha(unsigned char *w) {
-  // TODO: implement
+  unsigned char* curr = w;
+  int len = 0;
+  // loop through w to get to end of string
+  while (*curr != '\0') {
+    len++;
+    curr++;
+  }
+  // get index of last letter
+  len--;
+  // remove non alpha characters until we see normal letter
+  while (len >= 0 && !wc_isalpha(w[len])) {
+    w[len] = '\0';
+    len--;
+  }
 }
 
 // Search the specified linked list of WordEntry objects for an object
