@@ -159,7 +159,35 @@ void wc_trim_non_alpha(unsigned char *w) {
 // the new node should have its count value set to 0. (It is the caller's
 // job to update the count.)
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
-  // TODO: implement
+  struct WordEntry* curr = head;
+  while (curr != NULL) {
+    int index = 0;
+    int matches = 0;
+    while (s[index] != '\0' && curr->word[index] != '\0') {
+      if (s[index] == curr->word[index]) {
+        matches++;
+      }
+      index++;
+    }
+    // if both strings same length and have the exact same letters, we have same word
+    if (s[index] == '\0' && curr->word[index] == '\0' && index == matches) {
+      *inserted = 0;
+      return curr;
+    }
+    curr = curr->next;
+  }
+
+  struct WordEntry* new = malloc(sizeof(struct WordEntry));
+  new->count = 0;
+  int index = 0;
+  while (s[index] != '\0') {
+    new->word[index] = s[index];
+    index++;
+  }
+  new->word[index] = '\0';
+  new->next = head;
+  *inserted = 1;
+  return new;
 }
 
 // Find or insert the WordEntry object for the given string (s), returning
