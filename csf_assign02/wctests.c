@@ -29,7 +29,7 @@ void test_str_copy(TestObjs *objs);
 void test_isspace(TestObjs *objs);
 void test_isalpha(TestObjs *objs);
 //void test_readnext(TestObjs *objs);
-//void test_tolower(TestObjs *objs);
+void test_tolower(TestObjs *objs);
 void test_trim_non_alpha(TestObjs *objs);
 //void test_find_or_insert(TestObjs *objs);
 //void test_dict_find_or_insert(TestObjs *objs);
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   TEST(test_isspace);
   TEST(test_isalpha);
   //TEST(test_readnext);
-  //TEST(test_tolower);
+  TEST(test_tolower);
   TEST(test_trim_non_alpha);
   //TEST(test_find_or_insert);
   //TEST(test_dict_find_or_insert);
