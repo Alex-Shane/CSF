@@ -89,7 +89,25 @@ wc_str_copy:
  */
 	.globl wc_isspace
 wc_isspace:
-	/* TODO: implement */
+	subq $8, %rsp 
+	cmpb $32, %dil
+	je .Lspace_out
+	cmpb $9, %dil
+	je .Lspace_out
+	cmpb $13, %dil
+	je .Lspace_out
+	cmpb $10, %dil
+	je .Lspace_out
+	cmpb $12, %dil
+	je .Lspace_out
+	cmpb $11, %dil
+	je .Lspace_out
+	movq $0, %rax
+	jmp .Lspace_return
+.Lspace_out:
+	movq $1, %rax
+.Lspace_return:
+	addq $8, %rsp 
 	ret
 
 /*
@@ -101,7 +119,24 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
-	/* TODO: implement */
+	subq $8, %rsp
+	cmpb $65, %dil
+	jl .Lcheck_lower
+	cmpb $90, %dil
+	jg .Lcheck_lower
+	movq $1, %rax
+	jmp .Lalpha_out
+.Lcheck_lower:
+	cmpb $97, %dil
+	jl .Lalpha_false
+	cmpb $122, %dil
+	jg .Lalpha_false
+	movq $1, %rax
+	jmp .Lalpha_out
+.Lalpha_false:
+	movq $0, %rax
+.Lalpha_out:
+	addq $8, %rsp
 	ret
 
 /*
