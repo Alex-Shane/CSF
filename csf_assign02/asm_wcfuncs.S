@@ -89,25 +89,43 @@ wc_str_copy:
  */
 	.globl wc_isspace
 wc_isspace:
+	// align stack pointer
 	subq $8, %rsp 
+	// check if character we are interested in (stored in %dil) is equal to space character (32 in ascii)
 	cmpb $32, %dil
+	// if equal to space, jump to update function, if not continue with checks
 	je .Lspace_out
+	// check if char in %dil is equal to tab char (9 ascii)
 	cmpb $9, %dil
+	// if equal to tab, jump to update function, if not continue with checks
 	je .Lspace_out
+	// check if char in %dil is equal to carriage return char (13 ascii)
 	cmpb $13, %dil
+	// if equal, jump to update function, if not, continue
 	je .Lspace_out
+	// check if char in %dil is equal to newline char (10 ascii)
 	cmpb $10, %dil
+	// if equal, jump to update function, if not, continue
 	je .Lspace_out
+	// check if char in %dil is equal to new page char (12 ascii)
 	cmpb $12, %dil
+	// if equal, jump to update function, if not, continue
 	je .Lspace_out
+	// check if char in %dil is equal to vertical tab char (11 ascii)
 	cmpb $11, %dil
+	// if equal, jump to update function, if not, continue
 	je .Lspace_out
+	// if no checks were successful, we don't have space character, so move zero in return register
 	movl $0, %eax
+	// jump to return function
 	jmp .Lspace_return
 .Lspace_out:
+	// we have space character, so move 1 into return register
 	movl $1, %eax
 .Lspace_return:
+	// realign stack pointer
 	addq $8, %rsp 
+	// done with function, so return, which will return our value in %eax
 	ret
 
 /*
@@ -119,24 +137,40 @@ wc_isspace:
  */
 	.globl wc_isalpha
 wc_isalpha:
+	// align stack pointer
 	subq $8, %rsp
+	// check if char in %dil is greater than or equal to 65 (ascii of 'A')
 	cmpb $65, %dil
+	// if less than 'A', jump to next checks, if g/e, continue checks in current function
 	jl .Lcheck_lower
+	// check if char in %dil is also less than or equal to 'Z'
 	cmpb $90, %dil
+	// if greater than 'Z', jump to next checks, if l/e, continue in current function
 	jg .Lcheck_lower
+	// since value is between 'A' and 'Z', we know it's an alpha, so move 1 into return register
 	movl $1, %eax
+	// jump to return funciton
 	jmp .Lalpha_out
 .Lcheck_lower:
+	// check if char in %dil is greater than or equal to 'a'
 	cmpb $97, %dil
+	// if less than 'a', we know it's not a letter, so call false function
 	jl .Lalpha_false
+	// check if char in %dil is less than or equal to 'z'
 	cmpb $122, %dil
+	// if greater than 'z', not a character, so call false function
 	jg .Lalpha_false
+	// if between 'a' and 'z', we have alpha so move 1 into return register
 	movl $1, %eax
+	// jump to return function
 	jmp .Lalpha_out
 .Lalpha_false:
+	// if not alpha, move 1 into return register
 	movl $0, %eax
 .Lalpha_out:
+	// align stack pointer
 	addq $8, %rsp
+	// return/finish function
 	ret
 
 /*
