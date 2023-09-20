@@ -24,7 +24,7 @@ FILE *create_input_file(const unsigned char *text);
 
 // Prototypes of test functions
 void test_hash(TestObjs *objs);
-//void test_str_compare(TestObjs *objs);
+void test_str_compare(TestObjs *objs);
 void test_str_copy(TestObjs *objs);
 void test_isspace(TestObjs *objs);
 void test_isalpha(TestObjs *objs);
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
   TEST_INIT();
 
   TEST(test_hash);
-  //TEST(test_str_compare);
+  TEST(test_str_compare);
   TEST(test_str_copy);
   TEST(test_isspace);
   TEST(test_isalpha);

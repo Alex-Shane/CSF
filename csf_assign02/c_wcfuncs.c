@@ -43,7 +43,30 @@ uint32_t wc_hash(const unsigned char *w) {
 // of the other, it is considered as "less than". E.g.,
 // "hi" would compare as less than "high".
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
-  // TODO: implement
+  while (*lhs != '\0' && *rhs != '\0') {
+    // if lhs less than rhs, we need to return negative value
+    if (*lhs < *rhs) {
+      return -1; 
+    } 
+    // if rhs less than lhs, we need to return positive value
+    else if (*lhs > *rhs) {
+      return 1; // lhs is greater than rhs
+    }
+    lhs++;
+    rhs++;
+  }
+  
+  // if lhs is a prefix of rhs, then lhs is smaller lexicographically, thus return negative
+  if (*lhs == '\0' && *rhs != '\0') {
+    return -1; 
+  } 
+  // if rhs, is a prefix of lhs, then rhs is smaller lexicographically, thus return positive
+  else if (*lhs != '\0' && *rhs == '\0') {
+    return 1; 
+  }
+
+  // if both strings the same, return zero
+  return 0; 
 }
 
 // Copy NUL-terminated source string to the destination buffer.
