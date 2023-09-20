@@ -102,10 +102,10 @@ wc_isspace:
 	je .Lspace_out
 	cmpb $11, %dil
 	je .Lspace_out
-	movq $0, %rax
+	movl $0, %eax
 	jmp .Lspace_return
 .Lspace_out:
-	movq $1, %rax
+	movl $1, %eax
 .Lspace_return:
 	addq $8, %rsp 
 	ret
@@ -124,17 +124,17 @@ wc_isalpha:
 	jl .Lcheck_lower
 	cmpb $90, %dil
 	jg .Lcheck_lower
-	movq $1, %rax
+	movl $1, %eax
 	jmp .Lalpha_out
 .Lcheck_lower:
 	cmpb $97, %dil
 	jl .Lalpha_false
 	cmpb $122, %dil
 	jg .Lalpha_false
-	movq $1, %rax
+	movl $1, %eax
 	jmp .Lalpha_out
 .Lalpha_false:
-	movq $0, %rax
+	movl $0, %eax
 .Lalpha_out:
 	addq $8, %rsp
 	ret
