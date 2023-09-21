@@ -57,38 +57,80 @@ wc_hash:
  */
 	.globl wc_str_compare
 wc_str_compare:
+	// align stack pointer
 	subq $8, %rsp 
 .LcmpLoop:
-	cmp $0, %rdi
+	// store value of rdi address into r10
+	movb (%rdi), %r10b
+	// store value of rsi address into r11
+	movb (%rsi), %r11b
+	// check if r10 has null terminator
+	cmpb $0, %r10b
+	// if it is null terminator, stop loop
 	je .LcmpLoopDone
-	cmp $0, %rsi 
+	// if not, check if r11 has null terminator
+	cmpb $0, %r11b
+	// if null terminator, stop loop
 	je .LcmpLoopDone
-	cmp %rdi, %rsi
+	// compare the characters in r10 and r11
+	cmpb %r10b, %r11b
+	// if rhs > lhs, jump to set final negative answer
 	jg .LrightBigger
-	cmp %rdi, %rsi
+	// compare the characters in r10 and r11 again
+	cmpb %r10b, %r11b
+	// if rhs < lhs, jump to set final positive answer
 	jl .LleftBigger
+	// move to next character in lhs
 	inc %rdi
+	// move to next character in rhs
 	inc %rsi 
+	// go back into loop
 	jmp .LcmpLoop
 .LcmpLoopDone:
-	cmp $0, %rdi
+	// check if lhs is null terminator
+	cmpb $0, %r10b
+	// if null terminator, check if lhs is prefix of rhs
 	je .LcheckLeftPrefix
-	cmp $0, %rsi
+	// check if rhs is null terminator
+	cmpb $0, %r11b
+	// if null terminator, check if rhs is prefix of lhs
 	je .LcheckRightPrefix
+	// if neither check hits, we have same string
 	movl $0, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LcheckLeftPrefix:
-	cmp $0, %rsi
+	// check if rhs is null terminator
+	cmpb $0, %r11b
+	// if it isn't null terminator, we know lhs is prefix of rhs
 	jne .LrightBigger
+	// if null terminator, equal strings
 	movl $0, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LrightBigger:
+	// if we determine right bigger, make answer negative
 	movl $-1, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LcheckRightPrefix:
-	cmp $0, %rdi
+	// check if lhs is null terminator
+	cmpb $0, %r10b
+	// if not null terminator, we know rhs is prefix of lhs
 	jne .LleftBigger
+	// if null terminator, strings equal and return zero
+	movl $0, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LleftBigger:
+	// if we determine lhs bigger, make answer positive
 	movl $1, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LcmpOut:
-	subq $8, %rsp
+	// align stack pointer
+	addq $8, %rsp
+	// return to finish function
 	ret
 
 /*
