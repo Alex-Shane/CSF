@@ -57,7 +57,38 @@ wc_hash:
  */
 	.globl wc_str_compare
 wc_str_compare:
-	/* TODO: implement */
+	subq $8, %rsp 
+.LcmpLoop:
+	cmp $0, %rdi
+	je .LcmpLoopDone
+	cmp $0, %rsi 
+	je .LcmpLoopDone
+	cmp %rdi, %rsi
+	jg .LrightBigger
+	cmp %rdi, %rsi
+	jl .LleftBigger
+	inc %rdi
+	inc %rsi 
+	jmp .LcmpLoop
+.LcmpLoopDone:
+	cmp $0, %rdi
+	je .LcheckLeftPrefix
+	cmp $0, %rsi
+	je .LcheckRightPrefix
+	movl $0, %eax
+.LcheckLeftPrefix:
+	cmp $0, %rsi
+	jne .LrightBigger
+	movl $0, %eax
+.LrightBigger:
+	movl $-1, %eax
+.LcheckRightPrefix:
+	cmp $0, %rdi
+	jne .LleftBigger
+.LleftBigger:
+	movl $1, %eax
+.LcmpOut:
+	subq $8, %rsp
 	ret
 
 /*
