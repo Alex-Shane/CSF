@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   const unsigned char *best_word = (const unsigned char *) "";
   uint32_t best_word_count = 0;
 
-  struct WordEntry *words[HASHTABLE_SIZE];
+  /*struct WordEntry *words[HASHTABLE_SIZE];
   for (int x = 0; x < HASHTABLE_SIZE; x++) {
     words[x] = NULL;
   }
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         best_word = next_word;
       }
     }
-  }
+  }*/
 
 
   printf("Total words read: %u\n", (unsigned int) total_words);
