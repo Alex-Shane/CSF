@@ -136,17 +136,19 @@ int wc_readnext(FILE *in, unsigned char *w) {
 
   int i = 0;
   int c = fgetc(in);
-  while (c != EOF && c == ' '){
+  while (c != EOF && wc_isspace(c) == 1){
     c = fgetc(in);
   }
 
-  while (c != EOF && c != ' ' && i < MAX_WORDLEN) {
-    w[i] = (unsigned char)c;
-    i++;
+  while (c != EOF && wc_isspace(c) == 0) {
+    if (i < MAX_WORDLEN) {
+      w[i] = (unsigned char)c;
+      i++;
+    }
     c = fgetc(in);
   }
   w[i] = '\0';
-
+  //printf("Word read: %s\n", w);
   if (i > 0) {
     return 1;
   } else {
