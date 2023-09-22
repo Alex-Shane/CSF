@@ -138,7 +138,7 @@ int wc_readnext(FILE *in, unsigned char *w) {
     c = fgetc(in);
   }
 
-  while (c != EOF && c != ' ' && i < MAX_WORDLEN) {
+  while (c != EOF && c != ' ' && i < MAX_WORDLEN + 1) {
     w[i] = (unsigned char)c;
     i++;
     c = fgetc(in);
