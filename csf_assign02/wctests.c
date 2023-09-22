@@ -32,7 +32,7 @@ void test_readnext(TestObjs *objs);
 void test_tolower(TestObjs *objs);
 void test_trim_non_alpha(TestObjs *objs);
 void test_find_or_insert(TestObjs *objs);
-//void test_dict_find_or_insert(TestObjs *objs);
+void test_dict_find_or_insert(TestObjs *objs);
 void test_free_chain(TestObjs *objs);
 
 int main(int argc, char **argv) {
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   TEST(test_tolower);
   TEST(test_trim_non_alpha);
   TEST(test_find_or_insert);
-  //TEST(test_dict_find_or_insert);
+  TEST(test_dict_find_or_insert);
   TEST(test_free_chain);
 
   TEST_FINI();
@@ -240,7 +240,6 @@ void test_find_or_insert(TestObjs *objs) {
   ASSERT(1 == p->count);
   ++p->count;
 }
-
 void test_dict_find_or_insert(TestObjs *objs) {
   struct WordEntry *dict[5] = { NULL, NULL, NULL, NULL, NULL };
   struct WordEntry *p;
@@ -248,6 +247,8 @@ void test_dict_find_or_insert(TestObjs *objs) {
   // "avis" and "ax's" should go in bucket 1
 
   p = wc_dict_find_or_insert(dict, 5, (const unsigned char *) "avis");
+  //printf("Word: %s\n", p->word);
+  //printf("Word Dict 1: %s\n", dict[1]);
   ASSERT(dict[0] == NULL);
   ASSERT(dict[1] != NULL);
   ASSERT(dict[1] == p);
@@ -310,6 +311,7 @@ void test_dict_find_or_insert(TestObjs *objs) {
   ASSERT(p->count == 0);
   ++p->count;
 }
+
 
 void test_free_chain(TestObjs *objs) {
   (void) objs;
