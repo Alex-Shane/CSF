@@ -210,16 +210,8 @@ void wc_trim_non_alpha(unsigned char *w) {
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
   struct WordEntry* curr = head;
   while (curr != NULL) {
-    int index = 0;
-    int matches = 0;
-    while (s[index] != '\0' && curr->word[index] != '\0') {
-      if (s[index] == curr->word[index]) {
-        matches++;
-      }
-      index++;
-    }
-    // if both strings same length and have the exact same letters, we have same word
-    if (s[index] == '\0' && curr->word[index] == '\0' && index == matches) {
+    int compare = wc_str_compare(s, curr->word);
+    if (compare == 0) {
       *inserted = 0;
       return curr;
     }
@@ -229,11 +221,7 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
   struct WordEntry* new = malloc(sizeof(struct WordEntry));
   new->count = 0;
   int index = 0;
-  while (s[index] != '\0') {
-    new->word[index] = s[index];
-    index++;
-  }
-  new->word[index] = '\0';
+  wc_str_copy(new->word, s);
   new->next = head;
   *inserted = 1;
   return new;
@@ -249,14 +237,12 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
 struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned num_buckets, const unsigned char *s) {
   int hash = wc_hash(s) % num_buckets;
   //printf("%d\n", hash);
-  int inserted = 1;
+  int inserted = 0;
   struct WordEntry *bucket = buckets[hash];
   struct WordEntry *result = wc_find_or_insert(bucket, s, &inserted);
-  //printf("Word: %s\n", result->word);
   if (inserted == 1) {
-    //result->count++;
+    buckets[hash] = result;
   }
-  buckets[hash] = result;
   return result;
 }
 

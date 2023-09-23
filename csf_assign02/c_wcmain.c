@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
   int from_stdin = 0;
   if (argc == 2) { 
     file = fopen(argv[1], "r");
-
     // Check if the file was successfully opened
     if (file == NULL) {
         fprintf(stderr, "Error: Could not open file '%s' for reading.\n", argv[1]);
@@ -34,8 +33,9 @@ int main(int argc, char **argv) {
     file = stdin;
     from_stdin = 1;
   }
-    unsigned char next_word[MAX_WORDLEN+1];
-    while (wc_readnext(file, next_word) != 0) {
+  
+  unsigned char next_word[MAX_WORDLEN+1];
+  while (wc_readnext(file, next_word) != 0) {
     total_words++;
     wc_tolower(next_word);
     wc_trim_non_alpha(next_word);
