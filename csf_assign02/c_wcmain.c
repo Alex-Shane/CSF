@@ -5,8 +5,6 @@
 // Suggested number of buckets for the hash table
 #define HASHTABLE_SIZE 13249
 
-// TODO: prototypes for helper functions
-
 int main(int argc, char **argv) {
   // stats (to be printed at end)
   uint32_t total_words = 0;

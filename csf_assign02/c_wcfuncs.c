@@ -24,6 +24,7 @@
 uint32_t wc_hash(const unsigned char *w) {
   uint32_t hash_code = 5381;
   const unsigned char* curr = w;
+  // loop until string is done
   while (*curr != '\0') {
     unsigned char c = *curr;
     hash_code = hash_code * 33 + c;
@@ -43,6 +44,7 @@ uint32_t wc_hash(const unsigned char *w) {
 // of the other, it is considered as "less than". E.g.,
 // "hi" would compare as less than "high".
 int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
+  // loop until either string has been completely read
   while (*lhs != '\0' && *rhs != '\0') {
     // if lhs less than rhs, we need to return negative value
     if (*lhs < *rhs) {
@@ -50,7 +52,7 @@ int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
     } 
     // if rhs less than lhs, we need to return positive value
     else if (*lhs > *rhs) {
-      return 1; // lhs is greater than rhs
+      return 1; 
     }
     lhs++;
     rhs++;
@@ -73,12 +75,14 @@ int wc_str_compare(const unsigned char *lhs, const unsigned char *rhs) {
 void wc_str_copy(unsigned char *dest, const unsigned char *source) {
   const unsigned char* curr = source;
   int len = 0;
+  // loop until read entire source string
   while (*curr != '\0') {
     unsigned char c = *curr;
     dest[len] = c;
     curr++;
     len++;
   }
+  // explciitly set null terminator
   dest[len] = '\0';
 }
 
@@ -130,25 +134,29 @@ int wc_isalpha(unsigned char c) {
 // MAX_WORDLEN characters, then only the first MAX_WORDLEN
 // characters in the sequence should be stored in the array.
 int wc_readnext(FILE *in, unsigned char *w) {
+  // if read unsuccessful, return 0
   if (in == NULL) {
     return 0;
   }
 
   int i = 0;
   int c = fgetc(in);
+  // keep going until we don't get space character or reach end of file
   while (c != EOF && wc_isspace(c) == 1){
     c = fgetc(in);
   }
-
+  // continue reading letters until a space or end of file
   while (c != EOF && wc_isspace(c) == 0) {
+    // make sure we keep word less than MAX_WORDLEN
     if (i < MAX_WORDLEN) {
       w[i] = (unsigned char)c;
       i++;
     }
     c = fgetc(in);
   }
+  // set null terminator
   w[i] = '\0';
-  //printf("Word read: %s\n", w);
+  // if we return less than one character, read_next has failed so return zero
   if (i > 0) {
     return 1;
   } else {
@@ -209,8 +217,10 @@ void wc_trim_non_alpha(unsigned char *w) {
 // job to update the count.)
 struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char *s, int *inserted) {
   struct WordEntry* curr = head;
+  // loop while there are still WordEntry's in current linked list
   while (curr != NULL) {
     int compare = wc_str_compare(s, curr->word);
+    // if words are equal, then we found our match
     if (compare == 0) {
       *inserted = 0;
       return curr;
@@ -218,6 +228,7 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
     curr = curr->next;
   }
 
+  // if no match found, create new word entry and make it the head of the linked list
   struct WordEntry* new = malloc(sizeof(struct WordEntry));
   new->count = 0;
   int index = 0;
@@ -236,10 +247,10 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
 // which represents s.
 struct WordEntry *wc_dict_find_or_insert(struct WordEntry *buckets[], unsigned num_buckets, const unsigned char *s) {
   int hash = wc_hash(s) % num_buckets;
-  //printf("%d\n", hash);
   int inserted = 0;
   struct WordEntry *bucket = buckets[hash];
   struct WordEntry *result = wc_find_or_insert(bucket, s, &inserted);
+  // if we inserted new word entry into head of list at buckets[hash], then we need to update buckets[hash] to be the new result
   if (inserted == 1) {
     buckets[hash] = result;
   }
