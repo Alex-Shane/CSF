@@ -44,9 +44,9 @@ wc_hash:
 .Loophash:
 	cmpb $0, (%rdi)
 	je .LoophashDone
-	movb (%rdi), %r11b 
+	movzbl (%rdi), %r11d
 	imull $33, %r10d
-	addl %r11d, %r10d
+	add %r11d, %r10d
 	inc %rdi
 	jmp .Loophash
 .LoophashDone:
