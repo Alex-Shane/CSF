@@ -231,7 +231,6 @@ struct WordEntry *wc_find_or_insert(struct WordEntry *head, const unsigned char 
   // if no match found, create new word entry and make it the head of the linked list
   struct WordEntry* new = malloc(sizeof(struct WordEntry));
   new->count = 0;
-  int index = 0;
   wc_str_copy(new->word, s);
   new->next = head;
   *inserted = 1;

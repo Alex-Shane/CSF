@@ -37,7 +37,21 @@
  */
 	.globl wc_hash
 wc_hash:
-	/* TODO: implement */
+	// align stack pointer
+	subq $8, %rsp
+	movl $5381, %r10d
+	jmp .Loophash
+.Loophash:
+	cmpb $0, (%rdi)
+	je .LoophashDone
+	movb (%rdi), %r11b 
+	imull $33, %r10d
+	addl %r11d, %r10d
+	inc %rdi
+	jmp .Loophash
+.LoophashDone:
+	movl %r10d, %eax
+	addq $8, %rsp
 	ret
 
 /*
