@@ -166,18 +166,29 @@ wc_str_compare:
  */
 	.globl wc_str_copy
 wc_str_copy:
+	// align stack pointer
 	subq $8, %rsp
+	// jump to main loop
 	jmp .Loopcopy
 .Loopcopy:
+	// check for null terminator
 	cmpb $0, (%rsi)
+	// if null terminator, go to next function
 	je .LendCopy
+	// move character from source string into temp register
 	movb (%rsi), %r10b
+	// move character from temp register into dest string
 	movb %r10b, (%rdi)
+	// increment source pointer
 	inc %rsi
+	// increment dest pointer
 	inc %rdi 
+	// jump to top of loop
 	jmp .Loopcopy
 .LendCopy:
+	// explicitly set null terminator in dest string
 	movb $0, (%rdi)
+	// align stack pointer
 	addq $8, %rsp
 	ret
 
