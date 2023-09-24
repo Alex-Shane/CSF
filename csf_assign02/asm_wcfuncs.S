@@ -39,18 +39,29 @@
 wc_hash:
 	// align stack pointer
 	subq $8, %rsp
+	// move starting hash value into r10
 	movl $5381, %r10d
+	// go into main loop
 	jmp .Loophash
 .Loophash:
+	// check for null terminator
 	cmpb $0, (%rdi)
+	// if null terminator, go to next function 
 	je .LoophashDone
+	// move current letter of rdi (zero extended) into r11
 	movzbl (%rdi), %r11d
+	// multiply current hash by 33
 	imull $33, %r10d
+	// add ascii value of current character by 33
 	add %r11d, %r10d
+	// go to next character in rdi string
 	inc %rdi
+	// go back up to loop
 	jmp .Loophash
 .LoophashDone:
+	// move final hash into return register
 	movl %r10d, %eax
+	// align stack pointer
 	addq $8, %rsp
 	ret
 
@@ -155,7 +166,19 @@ wc_str_compare:
  */
 	.globl wc_str_copy
 wc_str_copy:
-	/* TODO: implement */
+	subq $8, %rsp
+	jmp .Loopcopy
+.Loopcopy:
+	cmpb $0, (%rsi)
+	je .LendCopy
+	movb (%rsi), %r10b
+	movb %r10b, (%rdi)
+	inc %rsi
+	inc %rdi 
+	jmp .Loopcopy
+.LendCopy:
+	movb $0, (%rdi)
+	addq $8, %rsp
 	ret
 
 /*
