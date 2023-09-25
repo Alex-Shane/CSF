@@ -190,6 +190,7 @@ void test_tolower(TestObjs *objs) {
 
   strcpy((char *) buf, (char *) objs->test_str_2);
   wc_tolower(buf);
+  printf("%s", buf);
   ASSERT(0 == strcmp("this is a sentence with_mixed case.", (char *) buf));
 }
 

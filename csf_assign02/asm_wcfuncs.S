@@ -286,7 +286,7 @@ wc_isalpha:
 	// jump to return function
 	jmp .Lalpha_out
 .Lalpha_false:
-	// if not alpha, move 1 into return register
+	// if not alpha, move 0 into return register
 	movl $0, %eax
 .Lalpha_out:
 	// align stack pointer
@@ -324,7 +324,31 @@ wc_readnext:
  */
 	.globl wc_tolower
 wc_tolower:
-	/* TODO: implement */
+	subq $8, %rsp
+	jmp .LloopLower
+.LloopLower:
+	cmpb $0, (%rdi)
+	je .LlowerDone
+	movb (%rdi), %r10b
+	call wc_isalpha
+	cmp $1, %eax 
+	jne .LkeepNonAlpha
+	cmpb $65, %r10b 
+	jl .LcontinueLowerLoop
+	cmpb $97, %r10b
+	jge .LcontinueLowerLoop
+	addl $32, %r10d 
+	movb %r10b, (%rdi)
+	jmp .LloopLower 
+.LkeepNonAlpha:
+	movb %r10b, (%rdi)
+	jmp .LcontinueLowerLoop
+
+.LcontinueLowerLoop:
+	inc %rdi
+	jmp .LloopLower
+.LlowerDone:
+	addq $8, %rsp
 	ret
 
 /*
