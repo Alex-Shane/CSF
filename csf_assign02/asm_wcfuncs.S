@@ -364,7 +364,31 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	/* TODO: implement */
+	subq $8, %rsp 
+	movq %rdi, %r10
+	jmp .LloopTrim
+.LloopTrim:
+	cmpb $0, (%rdi)
+	je .LdecreasePointer
+	inc %rdi
+	jmp .LloopTrim
+.LdecreasePointer:
+	dec %rdi
+	jmp .LnextLoopTrim
+.LnextLoopTrim:
+	cmpq %r10, %rdi
+	jl .LloopTrimDone
+	pushq %rdi
+	movb (%rdi), %dil 
+	call wc_isalpha
+	popq %rdi
+	cmp $1, %eax
+	je .LloopTrimDone
+	movb $0, (%rdi)
+	dec %rdi
+	jmp .LnextLoopTrim
+.LloopTrimDone:
+	addq $8, %rsp
 	ret
 
 /*
