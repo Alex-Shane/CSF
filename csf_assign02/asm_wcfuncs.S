@@ -329,21 +329,25 @@ wc_tolower:
 .LloopLower:
 	cmpb $0, (%rdi)
 	je .LlowerDone
-	movb (%rdi), %r10b
+	// move curr letter into temp register
+	// move current val of rdi onto stack
+	// move cur letter into rdi 
+	//movq %rdi, %r10
+	pushq %rdi
+	movb (%rdi), %dil 
 	call wc_isalpha
+	popq %rdi
+	//movq %r10, %rdi 
 	cmp $1, %eax 
-	jne .LkeepNonAlpha
-	cmpb $65, %r10b 
+	je .LadjustLetter
+	jmp .LcontinueLowerLoop 
+.LadjustLetter:
+	cmpb $65, (%rdi)
 	jl .LcontinueLowerLoop
-	cmpb $97, %r10b
+	cmpb $97, (%rdi)
 	jge .LcontinueLowerLoop
-	addl $32, %r10d 
-	movb %r10b, (%rdi)
-	jmp .LloopLower 
-.LkeepNonAlpha:
-	movb %r10b, (%rdi)
+	addl $32, (%rdi) 
 	jmp .LcontinueLowerLoop
-
 .LcontinueLowerLoop:
 	inc %rdi
 	jmp .LloopLower
