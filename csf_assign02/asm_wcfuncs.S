@@ -324,34 +324,46 @@ wc_readnext:
  */
 	.globl wc_tolower
 wc_tolower:
+	// align stack pointer
 	subq $8, %rsp
+	// jump to main loop
 	jmp .LloopLower
 .LloopLower:
+	// check for null terminator
 	cmpb $0, (%rdi)
+	// if null terminator, end loop
 	je .LlowerDone
-	// move curr letter into temp register
-	// move current val of rdi onto stack
-	// move cur letter into rdi 
-	//movq %rdi, %r10
+	// move current val of rdi onto stack 
 	pushq %rdi
+	// move cur letter into dil 
 	movb (%rdi), %dil 
+	// check if character is a letter
 	call wc_isalpha
+	// get the stack-stored string back into rdi
 	popq %rdi
-	//movq %r10, %rdi 
+	// check if our character was actually a letter
 	cmp $1, %eax 
+	// if yes, check to see if it is uppercase and needs to be adjusted
 	je .LadjustLetter
+	// if not letter, continue the loop
 	jmp .LcontinueLowerLoop 
 .LadjustLetter:
+	// check if letter is uppercase, between 'A' and 'Z', if not, continue loop
 	cmpb $65, (%rdi)
 	jl .LcontinueLowerLoop
 	cmpb $97, (%rdi)
 	jge .LcontinueLowerLoop
+	// if uppercase, add 32 to ascii value to make it lowercase
 	addl $32, (%rdi) 
+	// continue loop 
 	jmp .LcontinueLowerLoop
 .LcontinueLowerLoop:
+	// move to next letter
 	inc %rdi
+	// jump back to main loop
 	jmp .LloopLower
 .LlowerDone:
+	// align stack pointer
 	addq $8, %rsp
 	ret
 
@@ -364,30 +376,50 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
+	// align stack pointer
 	subq $8, %rsp 
+	// hold initial string address in temp register r10 
 	movq %rdi, %r10
+	// go to main loop
 	jmp .LloopTrim
 .LloopTrim:
+	// check for null terminator
 	cmpb $0, (%rdi)
+	// if null terminator, move to next function
 	je .LdecreasePointer
+	// if not null terminator, move to next character
 	inc %rdi
+	// continue loop
 	jmp .LloopTrim
 .LdecreasePointer:
+	// once we reach end of string, decrease address by 1 so rdi points to last character of string
 	dec %rdi
+	// jump to second loop
 	jmp .LnextLoopTrim
 .LnextLoopTrim:
+	// check if address of rdi has passed its initial address
 	cmpq %r10, %rdi
+	// if it has, end the loop
 	jl .LloopTrimDone
+	// if it hasn't, push the string onto the stack
 	pushq %rdi
+	// move the current character into dil
 	movb (%rdi), %dil 
+	// check if current character is a letter
 	call wc_isalpha
+	// return the string into rdi
 	popq %rdi
+	// if character is a letter, loop is done
 	cmp $1, %eax
 	je .LloopTrimDone
+	// if not a letter, make current character null terminator
 	movb $0, (%rdi)
+	// move to the left character
 	dec %rdi
+	// continue loop
 	jmp .LnextLoopTrim
 .LloopTrimDone:
+	// align stack pointer
 	addq $8, %rsp
 	ret
 
