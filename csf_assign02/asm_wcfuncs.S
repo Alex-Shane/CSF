@@ -12,6 +12,7 @@
 #define WORDENTRY_WORD_OFFSET   (0)
 #define WORDENTRY_COUNT_OFFSET  (MAX_WORDLEN+1)
 #define WORDENTRY_NEXT_OFFSET   (MAX_WORDLEN+1+4+4)
+#define WORDENTRY_SIZE          (WORDENTRY_NEXT_OFFSET+8)
 
 	.section .rodata
 /* Define any string constants or read-only data here */
@@ -442,7 +443,63 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
-	/* TODO: implement */
+	// align stack pointer 
+	subq $8, %rsp
+	// jump to main loop
+	jmp .LloopFind
+.LloopFind:
+	// store word of word entry into r12 
+	movq WORDENTRY_WORD_OFFSET(%rdi), %r12
+	// check if word is NULL 
+	cmp $0, %r12
+	// if NULL, then move to function handling inserting new word entry 
+	je .LnotFound
+	// put head onto stack
+	pushq %rdi 
+	// put current word on stack
+	pushq $rsi
+	// move current word into rdi
+	movq %rsi, %rdi 
+	// move word of word entry into rsi 
+	movq %r12, %rsi 
+	// call compare 
+	call wc_str_compare
+	// restore values of registers
+	popq %rsi
+	popq %rdi
+	// check if words were equal
+	cmp $0, %eax
+	// if equal, we found match and move to next function
+	je .Lfound
+	// if not equal, go to next word entry object 
+	movq WORDENTRY_NEXT_OFFSET(%rdi), %rdi
+	// continue loop 
+	jmp .LloopFind
+.Lfound:
+	// if we found match, move zero into inserted 
+	mov $0, %rdx 
+	// move word entry pointed to by rdi into return register 
+	mov %rdi, %eax 
+	// finish function 
+	jmp .LendFind
+.LnotFound:
+	pushq %rdi
+	mov WORDENTRY_SIZE, %rdi
+	call malloc 
+	mov $0, WORDENTRY_COUNT_OFFSET(%rdi)
+	pushq %rdi 
+	movq WORDENTRY_WORD_OFFSET(%rdi), %rdi
+	call wc_str_copy 
+	// move new pointer back into rdi
+	popq %rdi
+	// move head into r11
+	popq %r11
+	movq %r11, WORDENTRY_NEXT_OFFSET(%rdi) 
+	mov $1, %rdx 
+	mov %rdi, %eax
+	jmp .LendFind
+.LendFind:
+	addq $8, %rsp 
 	ret
 
 /*
