@@ -532,8 +532,11 @@ wc_dict_find_or_insert:
 	// move word into rdi 
 	movq %rdx, %rdi 
 	call wc_hash 
-	// how do I do modulo? 
-
+	popq %rdi 
+	movl $0, %edx 
+	movl %rsi, %r10d 
+	divl %r10d 
+	// remainder now in %edx 
 	ret
 
 /*
