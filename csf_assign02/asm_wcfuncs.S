@@ -445,7 +445,7 @@ wc_trim_non_alpha:
 wc_find_or_insert:
 	// align stack pointer 
 	subq $8, %rsp
-	movq %rdi, %al 
+	movq %rdi, %r13
 	// jump to main loop
 	jmp .LloopFind
 .LloopFind:
@@ -458,7 +458,7 @@ wc_find_or_insert:
 	// put head onto stack
 	pushq %rdi 
 	// put current word on stack
-	pushq $rsi
+	pushq %rsi
 	// move current word into rdi
 	movq %rsi, %rdi 
 	// move word of word entry into rsi 
@@ -480,7 +480,7 @@ wc_find_or_insert:
 	// if we found match, move zero into inserted 
 	mov $0, %rdx 
 	// move word entry pointed to by rdi into return register 
-	mov %rdi, %eax 
+	movq %rdi, %rax 
 	// finish function 
 	jmp .LendFind
 .LnotFound:
@@ -497,13 +497,13 @@ wc_find_or_insert:
 	// restore rdi to new pointer 
 	popq %rdi
 	// make count of new word entry zero
-	mov $0, WORDENTRY_COUNT_OFFSET(%rdi) 
+	movl $0, WORDENTRY_COUNT_OFFSET(%rdi) 
 	// move head into next word of word entry 
-	movq %al, WORDENTRY_NEXT_OFFSET(%rdi) 
+	movq %r13, WORDENTRY_NEXT_OFFSET(%rdi) 
 	// set inserted to 1
 	mov $1, %rdx 
 	// move new pointer into eax 
-	mov %rdi, %eax
+	movq %rdi, %rax
 	// finish the function 
 	jmp .LendFind
 .LendFind:
@@ -534,7 +534,7 @@ wc_dict_find_or_insert:
 	call wc_hash 
 	popq %rdi 
 	movl $0, %edx 
-	movl %rsi, %r10d 
+	movl %esi, %r10d 
 	divl %r10d 
 	// remainder now in %edx 
 	ret
