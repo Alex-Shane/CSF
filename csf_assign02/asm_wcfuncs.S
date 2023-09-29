@@ -450,7 +450,7 @@ wc_find_or_insert:
 	jmp .LloopFind
 .LloopFind:
 	// store word of word entry into r12 
-	movq WORDENTRY_WORD_OFFSET(%rdi), %r12
+	movq %rdi, %r12
 	// check if word is NULL 
 	cmp $0, %r12
 	// if NULL, then move to function handling inserting new word entry 
@@ -485,7 +485,7 @@ wc_find_or_insert:
 	jmp .LendFind
 .LnotFound:
 	// move number of bytes needed for word entry into rdi 
-	mov WORDENTRY_SIZE, %rdi
+	mov $WORDENTRY_SIZE, %rdi
 	// allocate the memory for word entry 
 	call malloc 
 	// save new pointer on the stack 
