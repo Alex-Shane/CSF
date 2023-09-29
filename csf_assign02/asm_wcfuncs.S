@@ -445,6 +445,7 @@ wc_trim_non_alpha:
 wc_find_or_insert:
 	// align stack pointer 
 	subq $8, %rsp
+	movq %rdi, %al 
 	// jump to main loop
 	jmp .LloopFind
 .LloopFind:
@@ -483,22 +484,30 @@ wc_find_or_insert:
 	// finish function 
 	jmp .LendFind
 .LnotFound:
-	pushq %rdi
+	// move number of bytes needed for word entry into rdi 
 	mov WORDENTRY_SIZE, %rdi
+	// allocate the memory for word entry 
 	call malloc 
-	mov $0, WORDENTRY_COUNT_OFFSET(%rdi)
-	pushq %rdi 
+	// save new pointer on the stack 
+	pushq %rdi
+	// set rdi to the word of word entry 
 	movq WORDENTRY_WORD_OFFSET(%rdi), %rdi
-	call wc_str_copy 
-	// move new pointer back into rdi
+	// copy word from source word 
+	call wc_str_copy
+	// restore rdi to new pointer 
 	popq %rdi
-	// move head into r11
-	popq %r11
-	movq %r11, WORDENTRY_NEXT_OFFSET(%rdi) 
+	// make count of new word entry zero
+	mov $0, WORDENTRY_COUNT_OFFSET(%rdi) 
+	// move head into next word of word entry 
+	movq %al, WORDENTRY_NEXT_OFFSET(%rdi) 
+	// set inserted to 1
 	mov $1, %rdx 
+	// move new pointer into eax 
 	mov %rdi, %eax
+	// finish the function 
 	jmp .LendFind
 .LendFind:
+	// align the stack pointer 
 	addq $8, %rsp 
 	ret
 
@@ -516,7 +525,15 @@ wc_find_or_insert:
  */
 	.globl wc_dict_find_or_insert
 wc_dict_find_or_insert:
-	/* TODO: implement */
+	// align stack pointer 
+	subq $8, %rsp
+	// save buckets table to stack 
+	pushq %rdi 
+	// move word into rdi 
+	movq %rdx, %rdi 
+	call wc_hash 
+	// how do I do modulo? 
+
 	ret
 
 /*
