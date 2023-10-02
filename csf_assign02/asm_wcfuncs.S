@@ -563,9 +563,21 @@ wc_dict_find_or_insert:
 	// move inserted into %edx 
 	movl %r12d, %edx
 	// need to save everything to stack I think here
+	pushq %rdi
+	pushq %rsi
+	pushq %rdx 
+	pushq %r12 
+	pushq %r11
+	pushq %r10 
 	// call find or insert
 	call wc_find_or_insert
 	// need to restore everything here I think
+	popq %r10
+	popq %r11
+	popq %r12 
+	popq %rdx  
+	popq %rsi
+	popq %rdi
 	// check if inserted is one
 	cmpl $1, %edx
 	// if so, update the buckets table 
