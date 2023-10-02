@@ -536,14 +536,52 @@ wc_dict_find_or_insert:
 	subq $8, %rsp
 	// save buckets table to stack 
 	pushq %rdi 
-	// move word into rdi 
+	// move source word into rdi 
 	movq %rdx, %rdi 
+	// get the hash code into %eax 
 	call wc_hash 
+	// restore buckets table
 	popq %rdi 
+	// save source word to stack 
+	pushq %rdx
+	// prep division (overwrites source word)
 	movl $0, %edx 
+	// move num buckets into temp register 
 	movl %esi, %r10d 
+	// divide hash code by r10d, remainder stored in %edx 
 	divl %r10d 
-	// remainder now in %edx 
+	// move remainder from edx to r11 
+	movl %edx, %r11d
+	// restore source word
+	popq %rdx 
+	// set inserted to zero
+	movl $0, %r12d 
+	// add hash to buckets address to get desired element. rdi now is buckets[hash]
+	addq %rax, %rdi 
+	// move source word into %rsi, overwrites num buckets which is fine 
+	movq %rdx, %rsi
+	// move inserted into %edx 
+	movl %r12d, %edx
+	// need to save everything to stack I think here
+	// call find or insert
+	call wc_find_or_insert
+	// need to restore everything here I think
+	// check if inserted is one
+	cmpl $1, %edx
+	// if so, update the buckets table 
+	je .Lchange
+	// if not, finish the function
+	jmp .LendDictFind
+
+.Lchange:
+	// updating head of linked list at buckets[hash]
+	movq %rax, %rdi 
+	// jump to finish function
+	jmp .LendDictFind
+
+.LendDictFind:
+	// align stack pointer 
+	addq $8, %rsp
 	ret
 
 /*
