@@ -40,8 +40,8 @@
 wc_hash:
 	// align stack pointer
 	subq $8, %rsp
-	// move starting hash value into r10
-	movl $5381, %r10d
+	// move starting hash value into r12
+	movl $5381, %r12d
 	// go into main loop
 	jmp .Loophash
 .Loophash:
@@ -49,19 +49,19 @@ wc_hash:
 	cmpb $0, (%rdi)
 	// if null terminator, go to next function 
 	je .LoophashDone
-	// move current letter of rdi (zero extended) into r11
-	movzbl (%rdi), %r11d
+	// move current letter of rdi (zero extended) into r13
+	movzbl (%rdi), %r13d
 	// multiply current hash by 33
-	imull $33, %r10d
+	imull $33, %r12d
 	// add ascii value of current character by 33
-	add %r11d, %r10d
+	add %r13d, %r12d
 	// go to next character in rdi string
 	inc %rdi
 	// go back up to loop
 	jmp .Loophash
 .LoophashDone:
 	// move final hash into return register
-	movl %r10d, %eax
+	movl %r12d, %eax
 	// align stack pointer
 	addq $8, %rsp
 	ret
@@ -86,24 +86,24 @@ wc_str_compare:
 	// align stack pointer
 	subq $8, %rsp 
 .LcmpLoop:
-	// store value of rdi address into r10
-	movb (%rdi), %r10b
-	// store value of rsi address into r11
-	movb (%rsi), %r11b
-	// check if r10 has null terminator
-	cmpb $0, %r10b
+	// store value of rdi address into r12
+	movb (%rdi), %r12b
+	// store value of rsi address into r13
+	movb (%rsi), %r13b
+	// check if r12 has null terminator
+	cmpb $0, %r12b
 	// if it is null terminator, stop loop
 	je .LcmpLoopDone
-	// if not, check if r11 has null terminator
-	cmpb $0, %r11b
+	// if not, check if r13 has null terminator
+	cmpb $0, %r13b
 	// if null terminator, stop loop
 	je .LcmpLoopDone
-	// compare the characters in r10 and r11
-	cmpb %r10b, %r11b
+	// compare the characters in r12 and r13
+	cmpb %r12b, %r13b
 	// if rhs > lhs, jump to set final negative answer
 	jg .LrightBigger
-	// compare the characters in r10 and r11 again
-	cmpb %r10b, %r11b
+	// compare the characters in r12 and r13 again
+	cmpb %r12b, %r13b
 	// if rhs < lhs, jump to set final positive answer
 	jl .LleftBigger
 	// move to next character in lhs
@@ -114,11 +114,11 @@ wc_str_compare:
 	jmp .LcmpLoop
 .LcmpLoopDone:
 	// check if lhs is null terminator
-	cmpb $0, %r10b
+	cmpb $0, %r12b
 	// if null terminator, check if lhs is prefix of rhs
 	je .LcheckLeftPrefix
 	// check if rhs is null terminator
-	cmpb $0, %r11b
+	cmpb $0, %r13b
 	// if null terminator, check if rhs is prefix of lhs
 	je .LcheckRightPrefix
 	// if neither check hits, we have same string
@@ -127,7 +127,7 @@ wc_str_compare:
 	jmp .LcmpOut
 .LcheckLeftPrefix:
 	// check if rhs is null terminator
-	cmpb $0, %r11b
+	cmpb $0, %r13b
 	// if it isn't null terminator, we know lhs is prefix of rhs
 	jne .LrightBigger
 	// if null terminator, equal strings
@@ -141,7 +141,7 @@ wc_str_compare:
 	jmp .LcmpOut
 .LcheckRightPrefix:
 	// check if lhs is null terminator
-	cmpb $0, %r10b
+	cmpb $0, %r12b
 	// if not null terminator, we know rhs is prefix of lhs
 	jne .LleftBigger
 	// if null terminator, strings equal and return zero
@@ -177,9 +177,9 @@ wc_str_copy:
 	// if null terminator, go to next function
 	je .LendCopy
 	// move character from source string into temp register
-	movb (%rsi), %r10b
+	movb (%rsi), %r12b
 	// move character from temp register into dest string
-	movb %r10b, (%rdi)
+	movb %r12b, (%rdi)
 	// increment source pointer
 	inc %rsi
 	// increment dest pointer
@@ -379,8 +379,8 @@ wc_tolower:
 wc_trim_non_alpha:
 	// align stack pointer
 	subq $8, %rsp 
-	// hold initial string address in temp register r10 
-	movq %rdi, %r10
+	// hold initial string address in temp register
+	movq %rdi, %r12 
 	// go to main loop
 	jmp .LloopTrim
 .LloopTrim:
@@ -399,7 +399,7 @@ wc_trim_non_alpha:
 	jmp .LnextLoopTrim
 .LnextLoopTrim:
 	// check if address of rdi has passed its initial address
-	cmpq %r10, %rdi
+	cmpq %r12, %rdi
 	// if it has, end the loop
 	jl .LloopTrimDone
 	// if it hasn't, push the string onto the stack
