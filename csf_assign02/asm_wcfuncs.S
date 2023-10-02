@@ -85,6 +85,9 @@ wc_hash:
 wc_str_compare:
 	// align stack pointer
 	subq $8, %rsp 
+	// save values in r12 and r13
+	pushq %r12
+	pushq %r13 
 .LcmpLoop:
 	// store value of rdi address into r12
 	movb (%rdi), %r12b
@@ -156,6 +159,9 @@ wc_str_compare:
 .LcmpOut:
 	// align stack pointer
 	addq $8, %rsp
+	// restore values in r12 and r13
+	popq %r13
+	popq %r12 
 	// return to finish function
 	ret
 
@@ -445,40 +451,41 @@ wc_trim_non_alpha:
 wc_find_or_insert:
 	// align stack pointer 
 	subq $8, %rsp
+	// store head in temp register 
 	movq %rdi, %r13
 	// jump to main loop
 	jmp .LloopFind
 .LloopFind:
-	// store word of word entry into r12 
-	movq %rdi, %r12
+	// move word of head word entry into temp register
+	movq WORDENTRY_NEXT_OFFSET(%rdi), %r12
 	// check if word is NULL 
-	cmp $0, %r12
+	cmpq $0, (%r12)
 	// if NULL, then move to function handling inserting new word entry 
 	je .LnotFound
 	// put head onto stack
 	pushq %rdi 
-	// put current word on stack
+	// put source word on stack
 	pushq %rsi
-	// move current word into rdi
-	movq %rsi, %rdi 
-	// move word of word entry into rsi 
-	movq %r12, %rsi 
+	// move source word into rdi
+	movq (%rsi), %rdi 
+	// move word of current word entry into rsi 
+	movq (%r12), %rsi 
 	// call compare 
 	call wc_str_compare
 	// restore values of registers
 	popq %rsi
 	popq %rdi
 	// check if words were equal
-	cmp $0, %eax
+	cmpl $0, %eax
 	// if equal, we found match and move to next function
-	je .Lfound
+	je .Lfound 
 	// if not equal, go to next word entry object 
 	movq WORDENTRY_NEXT_OFFSET(%rdi), %rdi
 	// continue loop 
 	jmp .LloopFind
 .Lfound:
 	// if we found match, move zero into inserted 
-	mov $0, %rdx 
+	movl $0, %edx 
 	// move word entry pointed to by rdi into return register 
 	movq %rdi, %rax 
 	// finish function 
@@ -494,14 +501,14 @@ wc_find_or_insert:
 	movq WORDENTRY_WORD_OFFSET(%rdi), %rdi
 	// copy word from source word 
 	call wc_str_copy
-	// restore rdi to new pointer 
+	// restore rdi 
 	popq %rdi
 	// make count of new word entry zero
 	movl $0, WORDENTRY_COUNT_OFFSET(%rdi) 
 	// move head into next word of word entry 
 	movq %r13, WORDENTRY_NEXT_OFFSET(%rdi) 
 	// set inserted to 1
-	mov $1, %rdx 
+	movl $1, %edx 
 	// move new pointer into eax 
 	movq %rdi, %rax
 	// finish the function 
