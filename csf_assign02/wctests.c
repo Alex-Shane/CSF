@@ -241,6 +241,20 @@ void test_find_or_insert(TestObjs *objs) {
   ASSERT(0 == strcmp("ax's", (const char *) p->word));
   ASSERT(1 == p->count);
   ++p->count;
+
+  p = wc_find_or_insert(list, (const unsigned char *)"test", &inserted);
+  ASSERT(1 == inserted);
+  ASSERT(0 == p->count);
+  ++p->count;
+
+  p = wc_find_or_insert(list, (const unsigned char *)"test", &inserted);
+  ASSERT(0 == inserted);
+  ++p->count;
+
+  while (list != NULL) {
+    printf("%s", list->word);
+    list = list->next;
+  }
 }
 void test_dict_find_or_insert(TestObjs *objs) {
   struct WordEntry *dict[5] = { NULL, NULL, NULL, NULL, NULL };

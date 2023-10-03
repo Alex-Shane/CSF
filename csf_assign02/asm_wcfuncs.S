@@ -513,7 +513,7 @@ wc_find_or_insert:
 	jmp .LendFind
 .LnotFound:
 	// move number of bytes needed for word entry into rdi 
-	movl $WORDENTRY_SIZE, %edi
+	movq $WORDENTRY_SIZE, %rdi 
 	// store source word and inserted
 	pushq %rsi
 	pushq %rdx 
