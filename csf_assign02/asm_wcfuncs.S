@@ -88,6 +88,10 @@ wc_str_compare:
 	// save values in r12 and r13
 	pushq %r12
 	pushq %r13 
+	cmpq $0, %rdi
+	je .LhandleLHSNull
+	cmpq $0, %rsi
+	je .LleftBigger
 .LcmpLoop:
 	// store value of rdi address into r12
 	movb (%rdi), %r12b
@@ -156,6 +160,13 @@ wc_str_compare:
 	movl $1, %eax
 	// jump to finish function
 	jmp .LcmpOut
+.LhandleLHSNull:
+	cmpq $0, %rsi
+	jne .LrightBigger
+	// both strings null, then equal 
+	movl $0, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LcmpOut:
 	// align stack pointer
 	addq $8, %rsp
@@ -175,6 +186,9 @@ wc_str_compare:
 wc_str_copy:
 	// align stack pointer
 	subq $8, %rsp
+	// save r12 to stack and move zero into it 
+	pushq %r12 
+	movq $0, %r12
 	// jump to main loop
 	jmp .Loopcopy
 .Loopcopy:
@@ -195,6 +209,8 @@ wc_str_copy:
 .LendCopy:
 	// explicitly set null terminator in dest string
 	movb $0, (%rdi)
+	// restore r12
+	popq %r12 
 	// align stack pointer
 	addq $8, %rsp
 	ret
@@ -456,23 +472,28 @@ wc_find_or_insert:
 	// jump to main loop
 	jmp .LloopFind
 .LloopFind:
-	// move word of head word entry into temp register
-	movq WORDENTRY_NEXT_OFFSET(%rdi), %r12
-	// check if word is NULL 
-	cmpq $0, (%r12)
-	// if NULL, then move to function handling inserting new word entry 
+	// check if word entry is NULL 
+	cmpq $0, %rdi 
 	je .LnotFound
+	// move word of curr word entry into temp register
+	movq %rdi, %r12
 	// put head onto stack
 	pushq %rdi 
 	// put source word on stack
 	pushq %rsi
+	// put inserted on stack
+	pushq %rdx 
+	// put r13 on stack
+	pushq %r13
 	// move source word into rdi
-	movq (%rsi), %rdi 
+	movq %rsi, %rdi 
 	// move word of current word entry into rsi 
-	movq (%r12), %rsi 
+	movq %r12, %rsi 
 	// call compare 
 	call wc_str_compare
 	// restore values of registers
+	popq %r13
+	popq %rdx 
 	popq %rsi
 	popq %rdi
 	// check if words were equal
@@ -485,30 +506,40 @@ wc_find_or_insert:
 	jmp .LloopFind
 .Lfound:
 	// if we found match, move zero into inserted 
-	movl $0, %edx 
+	movq $0, (%rdx) 
 	// move word entry pointed to by rdi into return register 
 	movq %rdi, %rax 
 	// finish function 
 	jmp .LendFind
 .LnotFound:
 	// move number of bytes needed for word entry into rdi 
-	mov $WORDENTRY_SIZE, %rdi
+	movl $WORDENTRY_SIZE, %edi
+	// store source word and inserted
+	pushq %rsi
+	pushq %rdx 
 	// allocate the memory for word entry 
 	call malloc 
+	// restore source and inserted
+	popq %rdx 
+	popq %rsi 
+	// move return of malloc into rdi
+	movq %rax, %rdi 
 	// save new pointer on the stack 
 	pushq %rdi
-	// set rdi to the word of word entry 
-	movq WORDENTRY_WORD_OFFSET(%rdi), %rdi
+	pushq %rsi
+	pushq %rdx 
 	// copy word from source word 
 	call wc_str_copy
-	// restore rdi 
-	popq %rdi
+	// restore registers 
+	popq %rdx 
+	popq %rsi
+	popq %rdi 
 	// make count of new word entry zero
 	movl $0, WORDENTRY_COUNT_OFFSET(%rdi) 
 	// move head into next word of word entry 
 	movq %r13, WORDENTRY_NEXT_OFFSET(%rdi) 
 	// set inserted to 1
-	movl $1, %edx 
+	movq $1, (%rdx) 
 	// move new pointer into eax 
 	movq %rdi, %rax
 	// finish the function 

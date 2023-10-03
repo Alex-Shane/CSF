@@ -212,6 +212,7 @@ void test_find_or_insert(TestObjs *objs) {
   struct WordEntry *p;
 
   p = wc_find_or_insert(list, (const unsigned char *) "avis", &inserted);
+  printf("%d", inserted);
   ASSERT(1 == inserted);
   list = p;
   ASSERT(p != NULL);
