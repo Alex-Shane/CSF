@@ -348,7 +348,7 @@ wc_readnext:
     // check for null terminator
     cmpb $0, (%rdi)
     // if null terminator, end loop
-    je .LreadNextDone
+    je .LnoCharactersFound
     pushq %rdi
     movb (%rdi), %dil
     call wc_isspace
@@ -357,11 +357,16 @@ wc_readnext:
     je .LloopIncrementChar
     jmp .LreadString
 
+.LnoCharactersFound:
+    mov $0, %rax;
+    jmp .LreadNextDone
+
 .LloopIncrementChar:
     inc %rdi
     jmp .LloopFindNonWhitespace
 
 .LreadString:
+    mov $1, %rax
     cmpb $0, (%rdi)
     je .LreadNextDone
     pushq %rdi
