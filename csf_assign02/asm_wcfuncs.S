@@ -339,49 +339,34 @@ wc_isalpha:
  */
 	.globl wc_readnext
 wc_readnext:
-	// align stack pointer
-    subq $8, %rsp
-    // jump to main loop
+    jmp .LloopFindNonWhitespace
     mov $0, %rcx
-    jmp .LloopFindNonWhitespace
-
 .LloopFindNonWhitespace:
-    // check for null terminator
-    cmpb $0, (%rdi)
-    // if null terminator, end loop
-    je .LnoCharactersFound
-    pushq %rdi
-    movb (%rdi), %dil
+    call fgetc
+    cmp $0, %eax
+    je .LreadNextDone
     call wc_isspace
-    popq %rdi
-    cmp $1, %eax
-    je .LloopIncrementChar
-    jmp .LreadString
-
-.LnoCharactersFound:
-    mov $0, %rax;
-    jmp .LreadNextDone
-
-.LloopIncrementChar:
-    inc %rdi
-    jmp .LloopFindNonWhitespace
+    test %al, %al
+    jnz .LloopFindNonWhitespace
 
 .LreadString:
-    mov $1, %rax
-    cmpb $0, (%rdi)
+    cmp $MAX_WORDLEN, %rcx
+    jae .LreadNextDone
+    call fgetc
+    cmp $0, %eax
     je .LreadNextDone
-    pushq %rdi
-    movq %rdi, %rsi
-    popq %rdi
-    movb (%rdi), %dl
-    movb %dl, (%rsi, %rcx)
-    inc %rdi
+    call wc_isspace
+    test %al, %al
+    jz .LreadWordChar
+    jmp .LreadNextDone
+
+.LreadWordChar:
+    mov %al, (%rsi, %rcx)
     inc %rcx
     jmp .LreadString
 
 .LreadNextDone:
     movb $0, (%rsi, %rcx)
-    addq $8, %rsp
     ret
 
 /*

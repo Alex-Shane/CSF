@@ -160,29 +160,29 @@ void test_readnext(TestObjs *objs) {
   in = create_input_file(objs->words_1);
   int result = wc_readnext(in,buf);
   //printf("Result of wc_readnext: %d\n", result);
-  //printf("Contents of buf: %s\n", buf);
+  printf("Contents of buf: %s\n", buf);
   ASSERT(1 == wc_readnext(in, buf));
-  //printf("Contents of buf: %s\n", buf);
-  //ASSERT(0 == strcmp("A", (const char *) buf));
-  printf("Contents of in: %s\n", in);
+  printf("Contents of buf: %s\n", buf);
+  ASSERT(0 == strcmp("A", (const char *) buf));
+
   ASSERT(1 == wc_readnext(in, buf));
-  //ASSERT(0 == strcmp("strong", (const char *) buf));
-printf("Contents of in: %s\n", in);
+  ASSERT(0 == strcmp("strong", (const char *) buf));
+
   ASSERT(1 == wc_readnext(in, buf));
-  //ASSERT(0 == strcmp("smell", (const char *) buf));
-printf("Contents of in: %s\n", in);
+  ASSERT(0 == strcmp("smell", (const char *) buf));
+
   ASSERT(1 == wc_readnext(in, buf));
-  //ASSERT(0 == strcmp("of", (const char *) buf));
-printf("Contents of in: %s\n", in);
+  ASSERT(0 == strcmp("of", (const char *) buf));
+
   ASSERT(1 == wc_readnext(in, buf));
-  //ASSERT(0 == strcmp("petroleum", (const char *) buf));
-printf("Contents of in: %s\n", in);
+  ASSERT(0 == strcmp("petroleum", (const char *) buf));
+
   ASSERT(1 == wc_readnext(in, buf));
-  //ASSERT(0 == strcmp("prevails", (const char *) buf));
-printf("Contents of in: %s\n", in);
+  ASSERT(0 == strcmp("prevails", (const char *) buf));
+
   ASSERT(1 == wc_readnext(in, buf));
-  //ASSERT(0 == strcmp("throughout.", (const char *) buf));
-printf("Contents of in: %s\n", in);
+  ASSERT(0 == strcmp("throughout.", (const char *) buf));
+
   ASSERT(0 == wc_readnext(in, buf));
 
   fclose(in);
