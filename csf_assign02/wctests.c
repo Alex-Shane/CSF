@@ -158,7 +158,7 @@ void test_readnext(TestObjs *objs) {
   unsigned char buf[MAX_WORDLEN + 1];
 
   in = create_input_file(objs->words_1);
-  result = wc_readnext(in,buf);
+  int result = wc_readnext(in,buf);
   printf("Result of wc_readnext: %d\n", result);
   ASSERT(1 == wc_readnext(in, buf));
 
