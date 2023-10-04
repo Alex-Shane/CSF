@@ -342,7 +342,7 @@ wc_readnext:
 	// align stack pointer
     subq $8, %rsp
     // jump to main loop
-    jmp .LloopGetNextChar
+    jmp .LloopFindNonWhitespace
 
 .LloopFindNonWhitespace:
     // check for null terminator
