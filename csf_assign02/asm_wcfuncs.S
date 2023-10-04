@@ -338,35 +338,34 @@ wc_isalpha:
 	.globl wc_readnext
 wc_readnext:
     // align stack pointer
-        subq $8, %rsp
-       	// jump to main loop
-       	jmp .LloopGetNextChar
+    subq $8, %rsp
+    // jump to main loop
+    jmp .LloopGetNextChar
 
-    .LloopGetNextChar:
-        // check for null terminator
-        cmpb $0, (%rdi)
-       	// if null terminator, end loop
-       	je .LreadNextDone
-       	pushq %rdi
-       	movb (%rdi), %dil
-       	call wc_isspace
-       	popq %rdi
-       	cmp $1, %eax
-       	je .LloopGetNextChar
-       	jmp .LreadString
+.LloopGetNextChar:
+    // check for null terminator
+    cmpb $0, (%rdi)
+    // if null terminator, end loop
+    je .LreadNextDone
+    pushq %rdi
+    movb (%rdi), %dil
+    call wc_isspace
+    popq %rdi
+    cmp $1, %eax
+    je .LloopGetNextChar
+    jmp .LreadString
+.LreadString:
+    cmpb $0, (%rdi)
+    je .LreadNextDone
+    pushq %rdi
+    movb (%rdi), %al
+    popq %rdi
+    inc %rdi
+    jmp .LreadString
 
-    .LreadString:
-        cmpb $0, (%rdi)
-        je .LreadNextDone
-        pushq %rdi
-        movb (%rdi), %al
-        popq %rdi
-        inc %rdi
-        jmp .LreadString
-
-    .LreadNextDone:
-        addq $8, %rsp
-        ret
+.LreadNextDone:
+    addq $8, %rsp
+    ret
 
 /*
  * Convert the NUL-terminated character string in the array
