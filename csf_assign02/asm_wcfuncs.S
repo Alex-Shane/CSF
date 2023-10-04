@@ -378,7 +378,7 @@ wc_readnext:
     jmp .LreadString
 
 .LreadNextDone:
-    movq $0, (%rsi)
+    //movq $0, (%rsi)
     addq $8, %rsp
     ret
 
