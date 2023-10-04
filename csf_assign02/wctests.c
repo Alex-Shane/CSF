@@ -161,7 +161,7 @@ void test_readnext(TestObjs *objs) {
   int result = wc_readnext(in,buf);
   printf("Result of wc_readnext: %d\n", result);
   ASSERT(1 == wc_readnext(in, buf));
-
+  printf("Contents of buf: %s\n", buf);
   ASSERT(0 == strcmp("A", (const char *) buf));
 
   ASSERT(1 == wc_readnext(in, buf));
