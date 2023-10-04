@@ -371,14 +371,16 @@ wc_readnext:
     cmpb $0, (%rdi)
     je .LreadNextDone
     pushq %rdi
-    movq (%rdi), %rsi
+    movq %rdi, %rsi
     popq %rdi
+    movb (%rdi), %dl
+    movb %dl, (%rsi, %rcx)
     inc %rdi
     inc %rcx
     jmp .LreadString
 
 .LreadNextDone:
-    movb $0, (%rdi, %rcx)
+    movb $0, (%rsi, %rcx)
     addq $8, %rsp
     ret
 
