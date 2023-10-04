@@ -370,7 +370,7 @@ wc_readnext:
     cmpb $0, (%rdi)
     je .LreadNextDone
     pushq %rdi
-    movb (%rdi), %(rsi)
+    movb (%rdi), (%rsi)
     popq %rdi
     inc %rdi
     inc %rsi
