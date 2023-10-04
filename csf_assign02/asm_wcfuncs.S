@@ -40,6 +40,7 @@
 wc_hash:
 	// align stack pointer
 	subq $8, %rsp
+	pushq %r12 
 	// move starting hash value into r12
 	movl $5381, %r12d
 	// go into main loop
@@ -62,6 +63,7 @@ wc_hash:
 .LoophashDone:
 	// move final hash into return register
 	movl %r12d, %eax
+	popq %r12 
 	// align stack pointer
 	addq $8, %rsp
 	ret
@@ -88,6 +90,10 @@ wc_str_compare:
 	// save values in r12 and r13
 	pushq %r12
 	pushq %r13 
+	cmpq $0, %rdi
+	je .LhandleLHSNull
+	cmpq $0, %rsi
+	je .LleftBigger
 .LcmpLoop:
 	// store value of rdi address into r12
 	movb (%rdi), %r12b
@@ -156,12 +162,19 @@ wc_str_compare:
 	movl $1, %eax
 	// jump to finish function
 	jmp .LcmpOut
+.LhandleLHSNull:
+	cmpq $0, %rsi
+	jne .LrightBigger
+	// both strings null, then equal 
+	movl $0, %eax
+	// jump to finish function
+	jmp .LcmpOut
 .LcmpOut:
-	// align stack pointer
-	addq $8, %rsp
 	// restore values in r12 and r13
 	popq %r13
 	popq %r12 
+	// align stack pointer
+	addq $8, %rsp
 	// return to finish function
 	ret
 
@@ -175,6 +188,9 @@ wc_str_compare:
 wc_str_copy:
 	// align stack pointer
 	subq $8, %rsp
+	// save r12 to stack and move zero into it 
+	pushq %r12 
+	movq $0, %r12
 	// jump to main loop
 	jmp .Loopcopy
 .Loopcopy:
@@ -195,6 +211,8 @@ wc_str_copy:
 .LendCopy:
 	// explicitly set null terminator in dest string
 	movb $0, (%rdi)
+	// restore r12
+	popq %r12 
 	// align stack pointer
 	addq $8, %rsp
 	ret
@@ -359,8 +377,6 @@ wc_readnext:
  */
 	.globl wc_tolower
 wc_tolower:
-	// align stack pointer
-	subq $8, %rsp
 	// jump to main loop
 	jmp .LloopLower
 .LloopLower:
@@ -398,8 +414,6 @@ wc_tolower:
 	// jump back to main loop
 	jmp .LloopLower
 .LlowerDone:
-	// align stack pointer
-	addq $8, %rsp
 	ret
 
 /*
@@ -411,8 +425,8 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	// align stack pointer
 	subq $8, %rsp 
+	pushq %r12 
 	// hold initial string address in temp register
 	movq %rdi, %r12 
 	// go to main loop
@@ -454,8 +468,8 @@ wc_trim_non_alpha:
 	// continue loop
 	jmp .LnextLoopTrim
 .LloopTrimDone:
-	// align stack pointer
-	addq $8, %rsp
+	popq %r12
+	addq $8, %rsp 
 	ret
 
 /*
@@ -477,73 +491,74 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
-	// align stack pointer 
-	subq $8, %rsp
-	// store head in temp register 
-	movq %rdi, %r13
-	// jump to main loop
+	subq $8, %rsp 
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15 
+	// head 
+	movq %rdi, %r12
+	// source word
+	movq %rsi, %r13
+	// inserted 
+	movq %rdx, %r14 
+	// curr 
+	movq %rdi, %r15
 	jmp .LloopFind
 .LloopFind:
-	// move word of head word entry into temp register
-	movq WORDENTRY_NEXT_OFFSET(%rdi), %r12
-	// check if word is NULL 
-	cmpq $0, (%r12)
-	// if NULL, then move to function handling inserting new word entry 
+	// check if word entry is NULL 
+	cmpq $0, %r15  
 	je .LnotFound
-	// put head onto stack
-	pushq %rdi 
-	// put source word on stack
-	pushq %rsi
 	// move source word into rdi
-	movq (%rsi), %rdi 
+	movq %r13, %rdi 
 	// move word of current word entry into rsi 
-	movq (%r12), %rsi 
+	movq %r15, %rsi 
 	// call compare 
 	call wc_str_compare
-	// restore values of registers
-	popq %rsi
-	popq %rdi
 	// check if words were equal
 	cmpl $0, %eax
 	// if equal, we found match and move to next function
 	je .Lfound 
 	// if not equal, go to next word entry object 
-	movq WORDENTRY_NEXT_OFFSET(%rdi), %rdi
+	movq WORDENTRY_NEXT_OFFSET(%r15), %r15
 	// continue loop 
 	jmp .LloopFind
 .Lfound:
 	// if we found match, move zero into inserted 
-	movl $0, %edx 
+	movq $0, (%r14) 
 	// move word entry pointed to by rdi into return register 
-	movq %rdi, %rax 
+	movq %r15, %rax 
 	// finish function 
 	jmp .LendFind
 .LnotFound:
 	// move number of bytes needed for word entry into rdi 
-	mov $WORDENTRY_SIZE, %rdi
+	movq $WORDENTRY_SIZE, %rdi 
 	// allocate the memory for word entry 
 	call malloc 
-	// save new pointer on the stack 
-	pushq %rdi
-	// set rdi to the word of word entry 
-	movq WORDENTRY_WORD_OFFSET(%rdi), %rdi
+	// move return of malloc into rdi
+	movq %rax, %r15  
+	movq %r15, %rdi  
+	movq %r13, %rsi 
 	// copy word from source word 
 	call wc_str_copy
-	// restore rdi 
-	popq %rdi
 	// make count of new word entry zero
-	movl $0, WORDENTRY_COUNT_OFFSET(%rdi) 
+	movl $0, WORDENTRY_COUNT_OFFSET(%r15) 
 	// move head into next word of word entry 
-	movq %r13, WORDENTRY_NEXT_OFFSET(%rdi) 
+	movq %r12, WORDENTRY_NEXT_OFFSET(%r15) 
 	// set inserted to 1
-	movl $1, %edx 
+	movq $1, (%r14) 
 	// move new pointer into eax 
-	movq %rdi, %rax
+	movq %r15, %rax
+	// ensure that source string is correct 
+	movq %r13, %rsi
 	// finish the function 
 	jmp .LendFind
 .LendFind:
-	// align the stack pointer 
-	addq $8, %rsp 
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12  
+	addq $8, %rsp
 	ret
 
 /*
@@ -564,14 +579,64 @@ wc_dict_find_or_insert:
 	subq $8, %rsp
 	// save buckets table to stack 
 	pushq %rdi 
-	// move word into rdi 
+	// move source word into rdi 
 	movq %rdx, %rdi 
+	// get the hash code into %eax 
 	call wc_hash 
+	// restore buckets table
 	popq %rdi 
+	// save source word to stack 
+	pushq %rdx
+	// prep division (overwrites source word)
 	movl $0, %edx 
+	// move num buckets into temp register 
 	movl %esi, %r10d 
+	// divide hash code by r10d, remainder stored in %edx 
 	divl %r10d 
-	// remainder now in %edx 
+	// move remainder from edx to r11 
+	movl %edx, %r11d
+	// restore source word
+	popq %rdx 
+	// set inserted to zero
+	movl $0, %r12d 
+	// add hash to buckets address to get desired element. rdi now is buckets[hash]
+	addq %rax, %rdi 
+	// move source word into %rsi, overwrites num buckets which is fine 
+	movq %rdx, %rsi
+	// move inserted into %edx 
+	movl %r12d, %edx
+	// need to save everything to stack I think here
+	pushq %rdi
+	pushq %rsi
+	pushq %rdx 
+	pushq %r12 
+	pushq %r11
+	pushq %r10 
+	// call find or insert
+	call wc_find_or_insert
+	// need to restore everything here I think
+	popq %r10
+	popq %r11
+	popq %r12 
+	popq %rdx  
+	popq %rsi
+	popq %rdi
+	// check if inserted is one
+	cmpl $1, %edx
+	// if so, update the buckets table 
+	je .Lchange
+	// if not, finish the function
+	jmp .LendDictFind
+
+.Lchange:
+	// updating head of linked list at buckets[hash]
+	movq %rax, %rdi 
+	// jump to finish function
+	jmp .LendDictFind
+
+.LendDictFind:
+	// align stack pointer 
+	addq $8, %rsp
 	ret
 
 /*

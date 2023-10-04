@@ -190,7 +190,6 @@ void test_tolower(TestObjs *objs) {
 
   strcpy((char *) buf, (char *) objs->test_str_2);
   wc_tolower(buf);
-  printf("%s", buf);
   ASSERT(0 == strcmp("this is a sentence with_mixed case.", (char *) buf));
 }
 
@@ -210,8 +209,21 @@ void test_find_or_insert(TestObjs *objs) {
   int inserted;
 
   struct WordEntry *p;
+  /*struct WordEntry *test = malloc(sizeof(struct WordEntry));
+  test->word[0] = '1';
+  test->word[1] = '\0';
+  test->count = 1;
 
+  struct WordEntry *test2 = malloc(sizeof(struct WordEntry));
+  test->next = test2;
+  test2->word[0] = '2';
+  test2->word[1] = 0;
+  test2->count = 1;
+
+  struct WordEntry *test3 = wc_find_or_insert(test, (const unsigned char*)"check", &inserted);*/
+  
   p = wc_find_or_insert(list, (const unsigned char *) "avis", &inserted);
+  printf("%d", inserted);
   ASSERT(1 == inserted);
   list = p;
   ASSERT(p != NULL);
