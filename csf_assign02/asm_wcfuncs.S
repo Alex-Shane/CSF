@@ -342,6 +342,7 @@ wc_readnext:
 	// align stack pointer
     subq $8, %rsp
     // jump to main loop
+    mov $0, %rcx
     jmp .LloopFindNonWhitespace
 
 .LloopFindNonWhitespace:
@@ -366,7 +367,6 @@ wc_readnext:
     jmp .LloopFindNonWhitespace
 
 .LreadString:
-    mov $0, %rcx
     mov $1, %rax
     cmpb $0, (%rdi)
     je .LreadNextDone
@@ -378,7 +378,7 @@ wc_readnext:
     jmp .LreadString
 
 .LreadNextDone:
-    movq $0, (%rdi, %rcx)
+    movb $0, (%rdi, %rcx)
     addq $8, %rsp
     ret
 
