@@ -366,6 +366,7 @@ wc_readnext:
     jmp .LloopFindNonWhitespace
 
 .LreadString:
+    mov $0, %rcx
     mov $1, %rax
     cmpb $0, (%rdi)
     je .LreadNextDone
@@ -373,10 +374,11 @@ wc_readnext:
     movq (%rdi), %rsi
     popq %rdi
     inc %rdi
+    inc %rcx
     jmp .LreadString
 
 .LreadNextDone:
-    movq $0, %rdi
+    movq $0, (%rsi, %rcx)
     addq $8, %rsp
     ret
 
