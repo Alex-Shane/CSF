@@ -357,7 +357,7 @@ wc_readnext:
     je .LloopIncrementChar
     jmp .LreadString
 
-.LloopIncrementChar
+.LloopIncrementChar:
     inc %rdi
     jmp .LloopFindNonWhitespace
 
@@ -371,7 +371,7 @@ wc_readnext:
     jmp .LreadString
 
 .LreadNextDone:
-    movq $0, %al
+    movq $0, %rdi
     addq $8, %rsp
     ret
 
