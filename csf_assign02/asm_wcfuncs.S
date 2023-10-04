@@ -373,7 +373,6 @@ wc_readnext:
     movq (%rdi), %rsi
     popq %rdi
     inc %rdi
-    inc %rsi
     jmp .LreadString
 
 .LreadNextDone:
