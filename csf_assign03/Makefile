@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic
-SRC = main.cpp
+SRC = main.cpp csimfuncs.cpp
 OBJ = $(SRC:.cpp=.o)
 TARGET = csim
 
