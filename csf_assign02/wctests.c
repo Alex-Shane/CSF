@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tctest.h"
 #include "wcfuncs.h"
 
@@ -223,7 +224,6 @@ void test_find_or_insert(TestObjs *objs) {
   struct WordEntry *test3 = wc_find_or_insert(test, (const unsigned char*)"check", &inserted);*/
   
   p = wc_find_or_insert(list, (const unsigned char *) "avis", &inserted);
-  printf("%d", inserted);
   ASSERT(1 == inserted);
   list = p;
   ASSERT(p != NULL);
@@ -258,10 +258,7 @@ void test_dict_find_or_insert(TestObjs *objs) {
   struct WordEntry *p;
 
   // "avis" and "ax's" should go in bucket 1
-
   p = wc_dict_find_or_insert(dict, 5, (const unsigned char *) "avis");
-  //printf("Word: %s\n", p->word);
-  //printf("Word Dict 1: %s\n", dict[1]);
   ASSERT(dict[0] == NULL);
   ASSERT(dict[1] != NULL);
   ASSERT(dict[1] == p);

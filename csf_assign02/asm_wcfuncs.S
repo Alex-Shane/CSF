@@ -38,9 +38,9 @@
  */
 	.globl wc_hash
 wc_hash:
-	// align stack pointer
-	subq $8, %rsp
+	// save callee saved registers 
 	pushq %r12 
+	pushq %r13 
 	// move starting hash value into r12
 	movl $5381, %r12d
 	// go into main loop
@@ -62,10 +62,10 @@ wc_hash:
 	jmp .Loophash
 .LoophashDone:
 	// move final hash into return register
-	movl %r12d, %eax
+	movl %r12d, %eax 
+	// restore callee saved registers 
+	popq %r13 
 	popq %r12 
-	// align stack pointer
-	addq $8, %rsp
 	ret
 
 /*
@@ -87,12 +87,16 @@ wc_hash:
 wc_str_compare:
 	// align stack pointer
 	subq $8, %rsp 
-	// save values in r12 and r13
+	// save callee saved registers 
 	pushq %r12
 	pushq %r13 
+	// check if lhs is null 
 	cmpq $0, %rdi
+	// if lhs is null, move to next function to handle it 
 	je .LhandleLHSNull
+	// check if rhs is null 
 	cmpq $0, %rsi
+	// if its null, and we know lhs isn't, left is bigger 
 	je .LleftBigger
 .LcmpLoop:
 	// store value of rdi address into r12
@@ -163,14 +167,16 @@ wc_str_compare:
 	// jump to finish function
 	jmp .LcmpOut
 .LhandleLHSNull:
+	// check if rhs is also null 
 	cmpq $0, %rsi
+	// if rhs isn't null, rhs is bigger 
 	jne .LrightBigger
-	// both strings null, then equal 
+	// if both strings null, then equal 
 	movl $0, %eax
 	// jump to finish function
 	jmp .LcmpOut
 .LcmpOut:
-	// restore values in r12 and r13
+	// restore values in callee saved registers 
 	popq %r13
 	popq %r12 
 	// align stack pointer
@@ -188,22 +194,24 @@ wc_str_compare:
 wc_str_copy:
 	// align stack pointer
 	subq $8, %rsp
-	// save r12 to stack and move zero into it 
+	// save callee saved registers  
 	pushq %r12 
-	movq $0, %r12
+	pushq %r13 
+	// move source word into r12 
+	movq %rsi, %r12
 	// jump to main loop
 	jmp .Loopcopy
 .Loopcopy:
 	// check for null terminator
-	cmpb $0, (%rsi)
+	cmpb $0, (%r12)
 	// if null terminator, go to next function
 	je .LendCopy
 	// move character from source string into temp register
-	movb (%rsi), %r12b
+	movb (%r12), %r13b 
 	// move character from temp register into dest string
-	movb %r12b, (%rdi)
+	movb %r13b, (%rdi)
 	// increment source pointer
-	inc %rsi
+	inc %r12 
 	// increment dest pointer
 	inc %rdi 
 	// jump to top of loop
@@ -211,7 +219,8 @@ wc_str_copy:
 .LendCopy:
 	// explicitly set null terminator in dest string
 	movb $0, (%rdi)
-	// restore r12
+	// restore callee saved registers 
+	popq %r13 
 	popq %r12 
 	// align stack pointer
 	addq $8, %rsp
@@ -337,8 +346,100 @@ wc_isalpha:
  */
 	.globl wc_readnext
 wc_readnext:
-	/* TODO: implement */
-	ret
+	// save callee saved registers
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15 
+	// r12 stores file pointer 
+	movq %rdi, %r12
+	// r13 holds the dest string 
+	movq %rsi, %r13
+	// check if file pointer is null 
+	cmpq $0, %rdi 
+	// if it is, return failure 
+	je .Lfail
+	// set length of word to zero 
+	movl $0, %r14d
+	// rdi is already file pointer, so call fgetc 
+	call fgetc
+	// move curr char into r15 
+	movb %al, %r15b
+	// begin looping 
+	jmp .LloopUntilNonSpace
+.LloopUntilNonSpace:
+	// check for EOF
+	cmpb $-1, %r15b
+	// if EOF, jump to finish function
+	je .LfinishRead 
+	// move current char into dil  
+	movb %r15b, %dil
+	// check if curr char is a space 
+	call wc_isspace
+	cmpl $1, %eax 
+	// if it's not a space, then we can proceed to read word 
+	jne .LreadWord
+	// if it is space, we need to get next letter to check if that is a space or not 
+	movq %r12, %rdi 
+	call fgetc
+	// move return of fgetc into r15b 
+	movb %al, %r15b 
+	// repeat loop with new char 
+	jmp .LloopUntilNonSpace
+.LreadWord:
+	// check for EOF
+	cmpb $-1, %r15b
+	// if EOF, jump to finish function
+	je .LfinishRead
+	// move curr letter to be checked for space 
+	movb %r15b, %dil
+	// check for space 
+	call wc_isspace
+	cmpl $1, %eax
+	// if a space, then word done and we can finish function 
+	je .LfinishRead
+	// if our dest word is less than max len, update it
+	cmpl $MAX_WORDLEN, %r14d 
+	jl .LupdateWord
+	// get next letter of word 
+	jmp .LnextLetter
+.LnextLetter:
+	// move file pointer into rdi 
+	movq %r12, %rdi 
+	call fgetc
+	// move result of getc into r15b 
+	movb %al, %r15b
+	// continue reading word 
+	jmp .LreadWord 
+.LupdateWord:
+	// update value of current letter in dest word 
+	movb %r15b, (%r13)
+	// move to next letter in dest word 
+	incq %r13 
+	// increase length of dest word 
+	incl %r14d 
+	// jump to get next letter
+	jmp .LnextLetter
+.LfinishRead:
+	// set null terminator 
+	movb $0, (%r13)
+	// check that our word is not empty
+	cmpl $0, %r14d
+	jle .Lfail
+	// if not empty, successful read 
+	movl $1, %eax 
+	jmp .LendRead
+.Lfail:
+	// fail code of zero 
+	movl $0, %eax 
+.LendRead:
+	// restore callee saved registers 
+	popq %r15 
+	popq %r14
+	popq %r13
+	popq %r13 
+	ret 
+
 
 /*
  * Convert the NUL-terminated character string in the array
@@ -349,43 +450,49 @@ wc_readnext:
  */
 	.globl wc_tolower
 wc_tolower:
+	// align stack pointer 
+	subq $8, %rsp 
+	// save callee saved register 
+	pushq %r12
+	// move source word into r12 
+	movq %rdi, %r12 
 	// jump to main loop
 	jmp .LloopLower
 .LloopLower:
 	// check for null terminator
-	cmpb $0, (%rdi)
+	cmpb $0, (%r12)
 	// if null terminator, end loop
 	je .LlowerDone
-	// move current val of rdi onto stack 
-	pushq %rdi
 	// move cur letter into dil 
-	movb (%rdi), %dil 
+	movb (%r12), %dil 
 	// check if character is a letter
 	call wc_isalpha
-	// get the stack-stored string back into rdi
-	popq %rdi
 	// check if our character was actually a letter
-	cmp $1, %eax 
+	cmpl $1, %eax 
 	// if yes, check to see if it is uppercase and needs to be adjusted
 	je .LadjustLetter
 	// if not letter, continue the loop
 	jmp .LcontinueLowerLoop 
 .LadjustLetter:
 	// check if letter is uppercase, between 'A' and 'Z', if not, continue loop
-	cmpb $65, (%rdi)
+	cmpb $65, (%r12)
 	jl .LcontinueLowerLoop
-	cmpb $97, (%rdi)
+	cmpb $97, (%r12)
 	jge .LcontinueLowerLoop
 	// if uppercase, add 32 to ascii value to make it lowercase
-	addl $32, (%rdi) 
+	addl $32, (%r12) 
 	// continue loop 
 	jmp .LcontinueLowerLoop
 .LcontinueLowerLoop:
 	// move to next letter
-	inc %rdi
+	inc %r12 
 	// jump back to main loop
 	jmp .LloopLower
 .LlowerDone:
+	// restore callee saved register 
+	popq %r12
+	// align stack pointer 
+	addq $8, %rsp 
 	ret
 
 /*
@@ -397,51 +504,51 @@ wc_tolower:
  */
 	.globl wc_trim_non_alpha
 wc_trim_non_alpha:
-	subq $8, %rsp 
+	// save callee saved registers 
 	pushq %r12 
-	// hold initial string address in temp register
+	pushq %r13 
+	// hold initial string address in r12, will be used in loop comparison 
 	movq %rdi, %r12 
+	// move source word into r13 as well
+	movq %rdi, %r13 
 	// go to main loop
 	jmp .LloopTrim
 .LloopTrim:
 	// check for null terminator
-	cmpb $0, (%rdi)
+	cmpb $0, (%r13)
 	// if null terminator, move to next function
 	je .LdecreasePointer
 	// if not null terminator, move to next character
-	inc %rdi
+	inc %r13 
 	// continue loop
 	jmp .LloopTrim
 .LdecreasePointer:
-	// once we reach end of string, decrease address by 1 so rdi points to last character of string
-	dec %rdi
+	// once we reach end of string, decrease address by 1 so r13 points to last character of string
+	decq %r13
 	// jump to second loop
 	jmp .LnextLoopTrim
 .LnextLoopTrim:
-	// check if address of rdi has passed its initial address
-	cmpq %r12, %rdi
+	// check if address of r13 has passed its initial address
+	cmpq %r12, %r13 
 	// if it has, end the loop
 	jl .LloopTrimDone
-	// if it hasn't, push the string onto the stack
-	pushq %rdi
 	// move the current character into dil
-	movb (%rdi), %dil 
+	movb (%r13), %dil 
 	// check if current character is a letter
 	call wc_isalpha
-	// return the string into rdi
-	popq %rdi
 	// if character is a letter, loop is done
 	cmp $1, %eax
 	je .LloopTrimDone
 	// if not a letter, make current character null terminator
-	movb $0, (%rdi)
-	// move to the left character
-	dec %rdi
+	movb $0, (%r13)
+	// move to the left by one character
+	decq %r13 
 	// continue loop
 	jmp .LnextLoopTrim
 .LloopTrimDone:
-	popq %r12
-	addq $8, %rsp 
+	// restore callee saved register 
+	popq %r13
+	popq %r12 
 	ret
 
 /*
@@ -463,11 +570,13 @@ wc_trim_non_alpha:
  */
 	.globl wc_find_or_insert
 wc_find_or_insert:
+	// align stack pointer 
 	subq $8, %rsp 
+	// save callee saved registers 
 	pushq %r12
 	pushq %r13
 	pushq %r14
-	pushq %r15 
+	pushq %r15  
 	// head 
 	movq %rdi, %r12
 	// source word
@@ -509,7 +618,9 @@ wc_find_or_insert:
 	call malloc 
 	// move return of malloc into rdi
 	movq %rax, %r15  
-	movq %r15, %rdi  
+	// move malloced address into rdi 
+	leaq WORDENTRY_WORD_OFFSET(%r15), %rdi  
+	// move source word into rsi 
 	movq %r13, %rsi 
 	// copy word from source word 
 	call wc_str_copy
@@ -518,18 +629,18 @@ wc_find_or_insert:
 	// move head into next word of word entry 
 	movq %r12, WORDENTRY_NEXT_OFFSET(%r15) 
 	// set inserted to 1
-	movq $1, (%r14) 
+	movl $1, (%r14) 
 	// move new pointer into eax 
 	movq %r15, %rax
-	// ensure that source string is correct 
-	movq %r13, %rsi
 	// finish the function 
 	jmp .LendFind
 .LendFind:
+	// restore callee saved registers 
 	popq %r15
 	popq %r14
 	popq %r13
 	popq %r12  
+	// align stack pointer 
 	addq $8, %rsp
 	ret
 
@@ -547,68 +658,69 @@ wc_find_or_insert:
  */
 	.globl wc_dict_find_or_insert
 wc_dict_find_or_insert:
-	// align stack pointer 
-	subq $8, %rsp
+	// save callee saved registers  
+	pushq %r12
+	pushq %r13
+	pushq %r14 
+	pushq %r15 
+	// buckets pointer
+	movq %rdi, %r12
+	// num buckets 
+	movl %esi, %r13d
+	// source word 
+	movq %rdx, %r14 
 	// save buckets table to stack 
-	pushq %rdi 
+	//pushq %rdi 
 	// move source word into rdi 
-	movq %rdx, %rdi 
+	movq %r14, %rdi 
 	// get the hash code into %eax 
-	call wc_hash 
-	// restore buckets table
-	popq %rdi 
-	// save source word to stack 
-	pushq %rdx
+	call wc_hash  
 	// prep division (overwrites source word)
 	movl $0, %edx 
-	// move num buckets into temp register 
-	movl %esi, %r10d 
-	// divide hash code by r10d, remainder stored in %edx 
-	divl %r10d 
-	// move remainder from edx to r11 
-	movl %edx, %r11d
-	// restore source word
-	popq %rdx 
-	// set inserted to zero
-	movl $0, %r12d 
-	// add hash to buckets address to get desired element. rdi now is buckets[hash]
-	addq %rax, %rdi 
-	// move source word into %rsi, overwrites num buckets which is fine 
-	movq %rdx, %rsi
-	// move inserted into %edx 
-	movl %r12d, %edx
-	// need to save everything to stack I think here
-	pushq %rdi
-	pushq %rsi
-	pushq %rdx 
-	pushq %r12 
-	pushq %r11
-	pushq %r10 
+	// perform division 
+	divl %r13d  
+	// move the remainder of the division into r15d 
+	movl %edx, %r15d 
+	// add hash to buckets address to get desired element. move address into rdi
+	movq (%r12, %r15, 8), %rdi 
+	// move source string into rsi 
+	movq %r14, %rsi 
+	// save frame pointer 
+	pushq %rbp
+	// move stack pointer into frame pointer 
+	movq %rsp, %rbp 
+	// allocate 8 bytes for inserted
+	subq $8, %rsp 
+	// set inserted address, overwrite rsi as we don't need #buckets anymore
+	leaq -8(%rbp), %r13 
+	// set value of inserted to zero 
+	movq $0, (%r13)
+	// mov r13 into rdx 
+	movq %r13, %rdx  
 	// call find or insert
-	call wc_find_or_insert
-	// need to restore everything here I think
-	popq %r10
-	popq %r11
-	popq %r12 
-	popq %rdx  
-	popq %rsi
-	popq %rdi
+	call wc_find_or_insert 
 	// check if inserted is one
-	cmpl $1, %edx
+	cmpq $1, (%r13)
 	// if so, update the buckets table 
 	je .Lchange
 	// if not, finish the function
 	jmp .LendDictFind
 
 .Lchange:
-	// updating head of linked list at buckets[hash]
-	movq %rax, %rdi 
+	// store inserted node in buckets[hash]
+	movq %rax, (%r12, %r15, 8) 
 	// jump to finish function
 	jmp .LendDictFind
 
 .LendDictFind:
-	// align stack pointer 
+	// align stack after local variable for inserted 
 	addq $8, %rsp
+	// restore all changed callee saved registers 
+	popq %rbp 
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12 
 	ret
 
 /*
@@ -619,7 +731,30 @@ wc_dict_find_or_insert:
  */
 	.globl wc_free_chain
 wc_free_chain:
-	/* TODO: implement */
+	// save callee saved registers 
+	pushq %r12 
+	pushq %r13
+	// current struct pointer 
+	movq %rdi, %r12 
+.LfreeLoop:
+	// check that current struct pointer is not null 
+	cmpq $0, %r12 
+	// if it is, we're done 
+	je .LfreeDone
+	// r13 is temp value 
+	movq %r12, %r13
+	// move to next pointer in r12 
+	movq WORDENTRY_NEXT_OFFSET(%r12), %r12
+	// move temp address to rdi to get freed 
+	movq %r13, %rdi 
+	// free address in rdi 
+	call free 
+	// repeat loop 
+	jmp .LfreeLoop
+.LfreeDone:
+	// restore callee saved registers 
+	popq %r13
+	popq %r12
 	ret
 
 /*
