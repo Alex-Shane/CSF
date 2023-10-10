@@ -48,7 +48,7 @@ wc_hash:
 .Loophash:
 	// check for null terminator
 	cmpb $0, (%rdi)
-	// if null terminator, go to next function 
+	// if null terminator, go to next function
 	je .LoophashDone
 	// move current letter of rdi (zero extended) into r13
 	movzbl (%rdi), %r13d
@@ -122,7 +122,7 @@ wc_str_compare:
 	// move to next character in lhs
 	inc %rdi
 	// move to next character in rhs
-	inc %rsi 
+	inc %rsi
 	// go back into loop
 	jmp .LcmpLoop
 .LcmpLoopDone:
@@ -178,7 +178,7 @@ wc_str_compare:
 .LcmpOut:
 	// restore values in callee saved registers 
 	popq %r13
-	popq %r12 
+	popq %r12
 	// align stack pointer
 	addq $8, %rsp
 	// return to finish function
@@ -204,16 +204,18 @@ wc_str_copy:
 .Loopcopy:
 	// check for null terminator
 	cmpb $0, (%r12)
+	cmpb $0, (%r12)
 	// if null terminator, go to next function
 	je .LendCopy
 	// move character from source string into temp register
 	movb (%r12), %r13b 
 	// move character from temp register into dest string
 	movb %r13b, (%rdi)
+	movb %r13b, (%rdi)
 	// increment source pointer
 	inc %r12 
 	// increment dest pointer
-	inc %rdi 
+	inc %rdi
 	// jump to top of loop
 	jmp .Loopcopy
 .LendCopy:
@@ -245,7 +247,7 @@ wc_str_copy:
 	.globl wc_isspace
 wc_isspace:
 	// align stack pointer
-	subq $8, %rsp 
+	subq $8, %rsp
 	// check if character we are interested in (stored in %dil) is equal to space character (32 in ascii)
 	cmpb $32, %dil
 	// if equal to space, jump to update function, if not continue with checks
@@ -279,7 +281,7 @@ wc_isspace:
 	movl $1, %eax
 .Lspace_return:
 	// realign stack pointer
-	addq $8, %rsp 
+	addq $8, %rsp
 	// done with function, so return, which will return our value in %eax
 	ret
 
@@ -472,7 +474,7 @@ wc_tolower:
 	// if yes, check to see if it is uppercase and needs to be adjusted
 	je .LadjustLetter
 	// if not letter, continue the loop
-	jmp .LcontinueLowerLoop 
+	jmp .LcontinueLowerLoop
 .LadjustLetter:
 	// check if letter is uppercase, between 'A' and 'Z', if not, continue loop
 	cmpb $65, (%r12)
@@ -581,41 +583,41 @@ wc_find_or_insert:
 	movq %rdi, %r12
 	// source word
 	movq %rsi, %r13
-	// inserted 
-	movq %rdx, %r14 
-	// curr 
+	// inserted
+	movq %rdx, %r14
+	// curr
 	movq %rdi, %r15
 	jmp .LloopFind
 .LloopFind:
-	// check if word entry is NULL 
-	cmpq $0, %r15  
+	// check if word entry is NULL
+	cmpq $0, %r15
 	je .LnotFound
 	// move source word into rdi
-	movq %r13, %rdi 
-	// move word of current word entry into rsi 
-	movq %r15, %rsi 
-	// call compare 
+	movq %r13, %rdi
+	// move word of current word entry into rsi
+	movq %r15, %rsi
+	// call compare
 	call wc_str_compare
 	// check if words were equal
 	cmpl $0, %eax
 	// if equal, we found match and move to next function
-	je .Lfound 
-	// if not equal, go to next word entry object 
+	je .Lfound
+	// if not equal, go to next word entry object
 	movq WORDENTRY_NEXT_OFFSET(%r15), %r15
-	// continue loop 
+	// continue loop
 	jmp .LloopFind
 .Lfound:
-	// if we found match, move zero into inserted 
-	movq $0, (%r14) 
-	// move word entry pointed to by rdi into return register 
-	movq %r15, %rax 
-	// finish function 
+	// if we found match, move zero into inserted
+	movq $0, (%r14)
+	// move word entry pointed to by rdi into return register
+	movq %r15, %rax
+	// finish function
 	jmp .LendFind
 .LnotFound:
-	// move number of bytes needed for word entry into rdi 
-	movq $WORDENTRY_SIZE, %rdi 
-	// allocate the memory for word entry 
-	call malloc 
+	// move number of bytes needed for word entry into rdi
+	movq $WORDENTRY_SIZE, %rdi
+	// allocate the memory for word entry
+	call malloc
 	// move return of malloc into rdi
 	movq %rax, %r15  
 	// move malloced address into rdi 
@@ -625,9 +627,9 @@ wc_find_or_insert:
 	// copy word from source word 
 	call wc_str_copy
 	// make count of new word entry zero
-	movl $0, WORDENTRY_COUNT_OFFSET(%r15) 
-	// move head into next word of word entry 
-	movq %r12, WORDENTRY_NEXT_OFFSET(%r15) 
+	movl $0, WORDENTRY_COUNT_OFFSET(%r15)
+	// move head into next word of word entry
+	movq %r12, WORDENTRY_NEXT_OFFSET(%r15)
 	// set inserted to 1
 	movl $1, (%r14) 
 	// move new pointer into eax 
