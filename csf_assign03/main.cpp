@@ -17,7 +17,17 @@ int main(int argc, char** argv) {
 
     // check that input parameters are valid 
     if (validParameters(argc, argv)) {
-        std::cout << "Valid parameters!" << std::endl;
+        // initalize int versions of cache parameters
+        int sets = std::stoi(argv[1]);
+        int blocks = std::stoi(argv[2]);
+        int bytes = std::stoi(argv[3]);
+        // initalize cache
+        Cache cache = initializeCache(sets, blocks);
+        // find # of tag bits
+        int tagBits = findTagBits(blocks, bytes);
+        // initalize loads and stores to zero
+        int loads = 0;
+        int stores = 0;
         std::string input; 
         // read entire input text 
         while (std::getline(std::cin, input)) {
@@ -26,9 +36,16 @@ int main(int argc, char** argv) {
             std::string command, address, ignore;
             // separate stream into 3 distinct sections
             stream >> command >> address >> ignore;
-            // check that stream is being sectioned properly
-            std::cout << "Command: " << command << ", Address: " << address << std::endl;
+            if (command == "l") {
+                std::cout << "load!" << std::endl;
+                loads++;
+            }
+            else {
+                std::cout << "store!" << std::endl;
+                stores++;
+            }
         }
+        std::cout << "loads: " << loads << ", stores: " << stores << std::endl;
         return 0;
     }
     else {

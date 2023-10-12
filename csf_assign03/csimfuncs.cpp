@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cstring>
 #include "csimfuncs.h"
+#include <cmath>
 
 bool checkPowerOfTwo(int num) {
     // power of 2 only has one bit set so if we check bits of num
@@ -78,4 +79,40 @@ bool validParameters(int argc, char** argv) {
         return false;
     }
     return true;
+}
+
+int findTagBits(int blocks, int bytes) {
+    // get the offset and index bits
+    int offsetBits = log(bytes) / log(2);
+    int indexBits = log(blocks) / log(2);
+    // calculate the tag bits from offset and index bits
+    int tagBits = 32-(offsetBits+indexBits);
+    return tagBits;
+}
+
+// Function to initialize an empty cache
+Cache initializeCache(int numSets, int numSlotsPerSet) {
+    Cache cache;
+    // allocate proper memory for cache
+    cache.sets.resize(numSets);
+    // create the neccessary sets for the cache
+    for (int i = 0; i < numSets; ++i) {
+        Set set;
+        // allocate proper memory for set
+        set.slots.resize(numSlotsPerSet); 
+        // create the neccessary slots for current set 
+        for (int j = 0; j < numSlotsPerSet; ++j) {
+            Slot slot;
+            // slot is initially not valid
+            slot.valid = false;
+            // slot intially has zero loads or stores
+            slot.load_ts = 0;
+            slot.access_ts = 0;
+            // add slot to current set
+            set.slots[j] = slot; 
+        }
+        // add current set to cache
+        cache.sets[i] = set;
+    }
+    return cache;
 }
