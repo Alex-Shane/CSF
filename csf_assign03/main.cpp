@@ -37,14 +37,16 @@ int main(int argc, char** argv) {
         while (std::getline(std::cin, input)) {
             // create a stream to read 3 sections of each line
             std::istringstream stream(input);
-            std::string command, ignore;
+            std::string command, address_str, ignore;
             uint32_t address;
             // separate stream into 3 distinct sections
-            stream >> command >> address >> ignore;
+            stream >> command >> address_str >> ignore;
             // find tag 
             uint32_t tag = getTag(blocks, bytes, address);
             // find index
             uint32_t index = getIndex(blocks, bytes, address);
+            // address converted from hex
+            address = std::stoul(address_str, nullptr, 16);
             if (command == "l") {
                 int cycles = cacheLoad(cache, index, tag, bytes);
                 if (cycles == 1) {
