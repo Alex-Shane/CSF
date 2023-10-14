@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 #include <string> 
 #include <sstream>
@@ -23,29 +24,57 @@ int main(int argc, char** argv) {
         int bytes = std::stoi(argv[3]);
         // initalize cache
         Cache cache = initializeCache(sets, blocks);
-        // find # of tag bits
-        int tagBits = findTagBits(blocks, bytes);
-        // initalize loads and stores to zero
+        // initalize simulation counters to zero
         int loads = 0;
         int stores = 0;
+        int load_hits = 0;
+        int load_misses = 0;
+        int store_hits = 0;
+        int store_misses = 0;
+        int total_cycles = 0;
         std::string input; 
         // read entire input text 
         while (std::getline(std::cin, input)) {
             // create a stream to read 3 sections of each line
             std::istringstream stream(input);
-            std::string command, address, ignore;
+            std::string command, ignore;
+            uint32_t address;
             // separate stream into 3 distinct sections
             stream >> command >> address >> ignore;
+            // find tag 
+            uint32_t tag = getTag(blocks, bytes, address);
+            // find index
+            uint32_t index = getIndex(blocks, bytes, address);
             if (command == "l") {
-                std::cout << "load!" << std::endl;
+                int cycles = cacheLoad(cache, index, tag, bytes);
+                if (cycles == 1) {
+                    load_hits++;
+                } 
+                else {
+                    load_misses++;
+                }
                 loads++;
+                total_cycles += cycles;
             }
             else {
-                std::cout << "store!" << std::endl;
+                int cycles = cacheStore(cache, index, tag, bytes);
+                if (cycles == 1) {
+                    store_hits++;
+                }
+                else {
+                    store_misses++;
+                }
                 stores++;
+                total_cycles += cycles;
             }
         }
-        std::cout << "loads: " << loads << ", stores: " << stores << std::endl;
+        std::cout << "Total loads: " << loads << std::endl;
+        std::cout << "Total stores: " << stores << std::endl;
+        std::cout << "Load hits: " << load_hits << std::endl;
+        std::cout << "Load misses: " << load_misses << std::endl;
+        std::cout << "Store hits: " << store_hits << std::endl;
+        std::cout << "Store misses: " << store_misses << std::endl;
+        std::cout << "Total cycles: " << total_cycles << std::endl;
         return 0;
     }
     else {

@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 #include <string> 
 #include <sstream>
@@ -81,13 +82,24 @@ bool validParameters(int argc, char** argv) {
     return true;
 }
 
-int findTagBits(int blocks, int bytes) {
+uint32_t getTag(int blocks, int bytes, uint32_t address) {
     // get the offset and index bits
     int offsetBits = log(bytes) / log(2);
     int indexBits = log(blocks) / log(2);
-    // calculate the tag bits from offset and index bits
-    int tagBits = 32-(offsetBits+indexBits);
-    return tagBits;
+    // get the tag by getting the remaining bits of the address not made up of offset or index
+    uint32_t tag = address >> (offsetBits + indexBits);
+    return tag;
+}
+
+uint32_t getIndex(int blocks, int bytes, uint32_t address) {
+    // get the offset and index bits
+    int offsetBits = log(bytes) / log(2);
+    int indexBits = log(blocks) / log(2);
+    // make every digit of index a 1
+    uint32_t indexMask = ((1 << indexBits) - 1) << offsetBits;
+    // use bitwise AND to get correct digits for index and shift it right to bring index to least significant places 
+    uint32_t index = (address & indexMask) >> offsetBits;
+    return index;
 }
 
 // Function to initialize an empty cache
@@ -107,12 +119,76 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
             slot.valid = false;
             // slot intially has zero loads or stores
             slot.load_ts = 0;
-            slot.access_ts = 0;
+            slot.store_ts = 0;
             // add slot to current set
             set.slots[j] = slot; 
         }
         // add current set to cache
         cache.sets[i] = set;
     }
+    if (numSlotsPerSet == 1) {
+        cache.directMapped = true;
+        cache.fully_associative = false;
+    } 
+    else if (numSets == 1) {
+        cache.fully_associative = true;
+        cache.directMapped = false;
+    } 
+    else {
+        cache.directMapped = false;
+        cache.fully_associative = false;
+    }
     return cache;
+}
+
+// simulate a cache load, where the return int is the number of cycles the load took 
+int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
+    Set& cacheSet = cache.sets[index];
+    // Search for a matching tag in the cache set
+    for (Slot& slot : cacheSet.slots) {
+        if (slot.valid && slot.tag == tag) {
+            // Cache hit
+            slot.load_ts++;
+            return 1;
+        }
+        // even if slot isn't a match, update its timestamp
+        slot.load_ts++;
+    } 
+    // Determine which cache slot to use for miss 
+    int slotToReplace;
+    if (cache.directMapped) {
+        slotToReplace = 0;
+    }
+    // Replace the cache slot with the new data
+    Slot& replacementSlot = cacheSet.slots[slotToReplace];
+    replacementSlot.tag = tag;
+    replacementSlot.valid = true;
+    // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
+    return 25*data_size;
+}
+
+// simulate a cache store, where the return int is the number of cycles the store took 
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
+    Set& cacheSet = cache.sets[index];
+    // Search for a matching tag in the cache set
+    for (Slot& slot : cacheSet.slots) {
+        if (slot.valid && slot.tag == tag) {
+            // Cache hit
+            slot.store_ts++;
+            return 1;
+        }
+        // even if slot isn't a match, update its timestamp
+        slot.store_ts++;
+    } 
+    // Determine which cache slot to use for miss 
+    int slotToReplace;
+    if (cache.directMapped) {
+        slotToReplace = 0;
+    }
+    // Replace the cache slot with the new data
+    Slot& replacementSlot = cacheSet.slots[slotToReplace];
+    replacementSlot.tag = tag;
+    replacementSlot.valid = true;
+    // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
+    return 25*data_size;
 }
