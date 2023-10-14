@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
         int sets = std::stoi(argv[1]);
         int blocks = std::stoi(argv[2]);
         int bytes = std::stoi(argv[3]);
+        bool lru = strcmp(argv[6], "lru") == 0 ? true : false;
         // initalize cache
         Cache cache = initializeCache(sets, blocks);
         // initalize simulation counters to zero
@@ -48,7 +49,7 @@ int main(int argc, char** argv) {
             // address converted from hex
             address = std::stoul(address_str, nullptr, 16);
             if (command == "l") {
-                int cycles = cacheLoad(cache, index, tag, bytes);
+                int cycles = cacheLoad(cache, index, tag, bytes, lru);
                 if (cycles == 1) {
                     load_hits++;
                 } 
@@ -59,7 +60,7 @@ int main(int argc, char** argv) {
                 total_cycles += cycles;
             }
             else {
-                int cycles = cacheStore(cache, index, tag, bytes);
+                int cycles = cacheStore(cache, index, tag, bytes, lru);
                 if (cycles == 1) {
                     store_hits++;
                 }

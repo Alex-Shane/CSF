@@ -119,7 +119,7 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
             slot.valid = false;
             // slot intially has zero loads or stores
             slot.load_ts = 0;
-            slot.store_ts = 0;
+            slot.access_ts = 0;
             // add slot to current set
             set.slots[j] = slot; 
         }
@@ -142,12 +142,47 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
 }
 
 // simulate a cache load, where the return int is the number of cycles the load took 
-int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
+int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lru) {
     Set& cacheSet = cache.sets[index];
     // Search for a matching tag in the cache set
     for (Slot& slot : cacheSet.slots) {
         if (slot.valid && slot.tag == tag) {
             // Cache hit
+            slot.access_ts++;
+            slot.load_ts++;
+            return 1;
+        }
+        // even if slot isn't a match, update its load timestamp so that relative order stays the same
+        slot.load_ts++;
+    } 
+    // Determine which cache slot to use for miss 
+    int slotToReplace;
+    if (cache.directMapped) {
+        slotToReplace = 0;
+    }
+    else if (cache.fully_associative) {
+        slotToReplace = findReplacementIndex(cacheSet, lru);
+    }
+    // how do I do this for set associative 
+    
+    // Replace the cache slot with the new data
+    Slot& replacementSlot = cacheSet.slots[slotToReplace];
+    replacementSlot.tag = tag;
+    replacementSlot.valid = true;
+    replacementSlot.access_ts = 0;
+    replacementSlot.load_ts = 0;
+    // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
+    return 25*data_size;
+}
+
+// simulate a cache store, where the return int is the number of cycles the store took 
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
+    Set& cacheSet = cache.sets[index];
+    // Search for a matching tag in the cache set
+    for (Slot& slot : cacheSet.slots) {
+        if (slot.valid && slot.tag == tag) {
+            // Cache hit
+            slot.access_ts++;
             slot.load_ts++;
             return 1;
         }
@@ -163,32 +198,33 @@ int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
     Slot& replacementSlot = cacheSet.slots[slotToReplace];
     replacementSlot.tag = tag;
     replacementSlot.valid = true;
+    replacementSlot.load_ts = 0;
+    replacementSlot.access_ts = 0;
     // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
     return 25*data_size;
 }
 
-// simulate a cache store, where the return int is the number of cycles the store took 
-int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
-    Set& cacheSet = cache.sets[index];
-    // Search for a matching tag in the cache set
-    for (Slot& slot : cacheSet.slots) {
-        if (slot.valid && slot.tag == tag) {
-            // Cache hit
-            slot.store_ts++;
-            return 1;
+int findReplacementIndex(Set& cacheSet, bool lru) {
+    int index = 0;
+    if (lru) {
+            uint32_t leastUsed = cacheSet.slots[0].access_ts;
+            // Iterate through all slots in the set to find the slot with the smallest access_ts.
+            for (int i = 1; i < cacheSet.slots.size(); ++i) {
+                if (cacheSet.slots[i].access_ts < leastUsed) {
+                    leastUsed = cacheSet.slots[i].access_ts;
+                    index = i;
+                }
+            }
         }
-        // even if slot isn't a match, update its timestamp
-        slot.store_ts++;
-    } 
-    // Determine which cache slot to use for miss 
-    int slotToReplace;
-    if (cache.directMapped) {
-        slotToReplace = 0;
+    else {
+        uint32_t oldest = cacheSet.slots[0].load_ts;
+            // Iterate through all slots in the set to find the slot with the smallest access_ts.
+        for (int i = 1; i < cacheSet.slots.size(); ++i) {
+            if (cacheSet.slots[i].load_ts < oldest) {
+                oldest = cacheSet.slots[i].load_ts;
+                index = i;
+            }
+        }
     }
-    // Replace the cache slot with the new data
-    Slot& replacementSlot = cacheSet.slots[slotToReplace];
-    replacementSlot.tag = tag;
-    replacementSlot.valid = true;
-    // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
-    return 25*data_size;
+    return index;
 }
