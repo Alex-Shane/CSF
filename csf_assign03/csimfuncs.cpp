@@ -115,8 +115,9 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
         // create the neccessary slots for current set 
         for (int j = 0; j < numSlotsPerSet; ++j) {
             Slot slot;
-            // slot is initially not valid
+            // slot is initially not valid or dirty
             slot.valid = false;
+            slot.dirty = false;
             // slot intially has zero loads or stores
             slot.load_ts = 0;
             slot.access_ts = 0;
@@ -156,27 +157,30 @@ int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lr
         slot.load_ts++;
     } 
     // Determine which cache slot to use for miss 
-    int slotToReplace;
+    int slotToUpdate;
     if (cache.directMapped) {
-        slotToReplace = 0;
+        slotToUpdate = 0;
     }
-    else if (cache.fully_associative) {
-        slotToReplace = findReplacementIndex(cacheSet, lru);
-    }
-    // how do I do this for set associative 
-    
+    else {
+        slotToUpdate = findAvailableSlotIndex(cacheSet);
+        // if no available slots can be used to handle miss, then we need to evict based on eviction policy
+        if (slotToUpdate == -1) {
+            slotToUpdate = findReplacementIndex(cacheSet, lru);
+        }
+    } 
     // Replace the cache slot with the new data
-    Slot& replacementSlot = cacheSet.slots[slotToReplace];
-    replacementSlot.tag = tag;
-    replacementSlot.valid = true;
-    replacementSlot.access_ts = 0;
-    replacementSlot.load_ts = 0;
+    Slot& updateSlot = cacheSet.slots[slotToUpdate];
+    updateSlot.tag = tag;
+    updateSlot.valid = true;
+    updateSlot.access_ts = 0;
+    updateSlot.load_ts = 0;
+    updateSlot.dirty = false;
     // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
     return 25*data_size;
 }
 
 // simulate a cache store, where the return int is the number of cycles the store took 
-int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate,bool write_through, bool lru) {
     Set& cacheSet = cache.sets[index];
     // Search for a matching tag in the cache set
     for (Slot& slot : cacheSet.slots) {
@@ -184,24 +188,65 @@ int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size) {
             // Cache hit
             slot.access_ts++;
             slot.load_ts++;
-            return 1;
+            if (write_through) {
+                // store to cache is one cycle, store to memory is 25*bytes stored
+                return 1+(25*data_size);
+            }
+            else {
+                slot.dirty = true;
+                return 1;
+            }
         }
         // even if slot isn't a match, update its timestamp
         slot.load_ts++;
     } 
-    // Determine which cache slot to use for miss 
-    int slotToReplace;
-    if (cache.directMapped) {
-        slotToReplace = 0;
+    return handleStoreMiss(cacheSet, tag, data_size, cache.directMapped, write_allocate, write_through, lru);
+}
+
+int handleStoreMiss(Set& cacheSet, uint32_t tag, int data_size, bool direct_mapped, bool write_allocate, bool write_through, bool lru) {
+    if (!write_allocate) {
+        // for no-write-allocate and write-back, we just store to memory
+        return 25*data_size;
     }
-    // Replace the cache slot with the new data
-    Slot& replacementSlot = cacheSet.slots[slotToReplace];
-    replacementSlot.tag = tag;
-    replacementSlot.valid = true;
-    replacementSlot.load_ts = 0;
-    replacementSlot.access_ts = 0;
-    // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
-    return 25*data_size;
+    int cycles = 0;
+    // Determine which cache slot to use for miss 
+    int slotToUpdate;
+    if (direct_mapped) {
+        slotToUpdate = 0;
+    }
+    else {
+        slotToUpdate = findAvailableSlotIndex(cacheSet);
+        // if no available slots can be used to handle miss, then we need to evict based on eviction policy
+        if (slotToUpdate == -1) {
+            slotToUpdate = findReplacementIndex(cacheSet, lru);
+        }
+    }
+    // update the cache slot with the new data
+    Slot& updateSlot = cacheSet.slots[slotToUpdate];
+    if (write_through || updateSlot.dirty) {
+        // we had to load from mem and store to cache if w.t, and write to mem and store to cache if write-back
+        cycles = 1+(25*data_size);
+    }
+    else {
+        // if write-back and evicted/updated block isn't dirty, just one cycle
+        cycles = 1;
+    }
+    updateSlot.tag = tag;
+    updateSlot.valid = true;
+    updateSlot.load_ts = 0;
+    updateSlot.access_ts = 0;
+    updateSlot.dirty = false;
+    return cycles;
+}
+
+
+int findAvailableSlotIndex(Set& cacheSet) {
+    for (int i = 0; i < (int) cacheSet.slots.size(); i++) {
+        if (cacheSet.slots[i].valid == false) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 int findReplacementIndex(Set& cacheSet, bool lru) {
@@ -209,7 +254,7 @@ int findReplacementIndex(Set& cacheSet, bool lru) {
     if (lru) {
             uint32_t leastUsed = cacheSet.slots[0].access_ts;
             // Iterate through all slots in the set to find the slot with the smallest access_ts.
-            for (int i = 1; i < cacheSet.slots.size(); ++i) {
+            for (int i = 1; i < (int) cacheSet.slots.size(); ++i) {
                 if (cacheSet.slots[i].access_ts < leastUsed) {
                     leastUsed = cacheSet.slots[i].access_ts;
                     index = i;
@@ -219,7 +264,7 @@ int findReplacementIndex(Set& cacheSet, bool lru) {
     else {
         uint32_t oldest = cacheSet.slots[0].load_ts;
             // Iterate through all slots in the set to find the slot with the smallest access_ts.
-        for (int i = 1; i < cacheSet.slots.size(); ++i) {
+        for (int i = 1; i < (int) cacheSet.slots.size(); ++i) {
             if (cacheSet.slots[i].load_ts < oldest) {
                 oldest = cacheSet.slots[i].load_ts;
                 index = i;

@@ -22,6 +22,8 @@ int main(int argc, char** argv) {
         int sets = std::stoi(argv[1]);
         int blocks = std::stoi(argv[2]);
         int bytes = std::stoi(argv[3]);
+        bool write_allocate = strcmp("write-allocate", argv[4]) ? true : false;
+        bool write_through = strcmp("write-through", argv[5]) ? true : false;
         bool lru = strcmp(argv[6], "lru") == 0 ? true : false;
         // initalize cache
         Cache cache = initializeCache(sets, blocks);
@@ -60,7 +62,7 @@ int main(int argc, char** argv) {
                 total_cycles += cycles;
             }
             else {
-                int cycles = cacheStore(cache, index, tag, bytes, lru);
+                int cycles = cacheStore(cache, index, tag, bytes, write_allocate, write_through, lru);
                 if (cycles == 1) {
                     store_hits++;
                 }

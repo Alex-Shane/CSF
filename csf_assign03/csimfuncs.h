@@ -6,7 +6,7 @@
 
 struct Slot {
     uint32_t tag;
-    bool valid;
+    bool valid, dirty;
     uint32_t load_ts, access_ts;
 };
 
@@ -48,9 +48,15 @@ Cache initializeCache(int numSets, int numSlots);
 int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lru);
 
 // simulate a cache store and return the total cycles taken
-int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lru);
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru);
 
 // find index of slot to replace after a miss in associative cache
 int findReplacementIndex(Set& cacheSet, bool lru);
+
+// find index of available slot in a set
+int findAvailableSlotIndex(Set& cacheSet);
+
+// handle the case when a store misses in a cache
+int handleStoreMiss(Set& cacheSet, uint32_t tag, int data_size, bool direct_mapped, bool write_allocate, bool write_through, bool lru);
 
 #endif // CSIMFUNCS_H
