@@ -82,16 +82,26 @@ bool validParameters(int argc, char** argv) {
     return true;
 }
 
-uint32_t getTag(int blocks, int bytes, uint32_t address) {
+uint32_t getTag(int blocks, int bytes, uint32_t address, int sets) {
     // get the offset and index bits
     int offsetBits = log(bytes) / log(2);
+    // if full associative cache, we want tag to be tag+index bits
+    if (sets == 1) {
+        uint32_t tag = address >> (offsetBits);
+        return tag;
+    }
+    // if direct mapped or set associative, proceed normally with index and tag
     int indexBits = log(blocks) / log(2);
     // get the tag by getting the remaining bits of the address not made up of offset or index
     uint32_t tag = address >> (offsetBits + indexBits);
     return tag;
 }
 
-uint32_t getIndex(int blocks, int bytes, uint32_t address) {
+uint32_t getIndex(int blocks, int bytes, uint32_t address, int sets) {
+    // index should be zero every time if fully associative cache
+    if (sets == 1) {
+        return 0;
+    }
     // get the offset and index bits
     int offsetBits = log(bytes) / log(2);
     int indexBits = log(blocks) / log(2);
@@ -180,12 +190,13 @@ int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lr
 }
 
 // simulate a cache store, where the return int is the number of cycles the store took 
-int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate,bool write_through, bool lru) {
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate,bool write_through, bool lru, bool* hit) {
     Set& cacheSet = cache.sets[index];
     // Search for a matching tag in the cache set
     for (Slot& slot : cacheSet.slots) {
         if (slot.valid && slot.tag == tag) {
             // Cache hit
+            *hit = true;
             slot.access_ts++;
             slot.load_ts++;
             if (write_through) {
@@ -205,7 +216,7 @@ int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool w
 
 int handleStoreMiss(Set& cacheSet, uint32_t tag, int data_size, bool direct_mapped, bool write_allocate, bool write_through, bool lru) {
     if (!write_allocate) {
-        // for no-write-allocate and write-back, we just store to memory
+        // for no-write-allocate and write-through, we just store to memory
         return 25*data_size;
     }
     int cycles = 0;

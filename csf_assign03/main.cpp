@@ -45,9 +45,9 @@ int main(int argc, char** argv) {
             // separate stream into 3 distinct sections
             stream >> command >> address_str >> ignore;
             // find tag 
-            uint32_t tag = getTag(blocks, bytes, address);
+            uint32_t tag = getTag(blocks, bytes, address, sets);
             // find index
-            uint32_t index = getIndex(blocks, bytes, address);
+            uint32_t index = getIndex(blocks, bytes, address, sets);
             // address converted from hex
             address = std::stoul(address_str, nullptr, 16);
             if (command == "l") {
@@ -62,8 +62,9 @@ int main(int argc, char** argv) {
                 total_cycles += cycles;
             }
             else {
-                int cycles = cacheStore(cache, index, tag, bytes, write_allocate, write_through, lru);
-                if (cycles == 1) {
+                bool hit = false; 
+                int cycles = cacheStore(cache, index, tag, bytes, write_allocate, write_through, lru, &hit);
+                if (hit) {
                     store_hits++;
                 }
                 else {
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
         return 0;
     }
     else {
-        // error messages dealt with in function, just need to return non zero exit code
+        // error messages dealt with in valid parameters function, just need to return non zero exit code
         return 1;
     }
 }

@@ -36,10 +36,10 @@ bool isValidOption(char* input, char* option1, char* option2);
 bool validParameters(int argc, char** argv);
 
 // get the tag from a current address
-uint32_t getTag(int blocks, int bytes, uint32_t address);
+uint32_t getTag(int blocks, int bytes, uint32_t address, int sets);
 
 // get the index from a current address
-uint32_t getIndex(int blocks, int bytes, uint32_t address);
+uint32_t getIndex(int blocks, int bytes, uint32_t address, int sets);
 
 // initialize a cache given cache parameters
 Cache initializeCache(int numSets, int numSlots);
@@ -48,7 +48,7 @@ Cache initializeCache(int numSets, int numSlots);
 int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lru);
 
 // simulate a cache store and return the total cycles taken
-int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru);
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru, bool* hit);
 
 // find index of slot to replace after a miss in associative cache
 int findReplacementIndex(Set& cacheSet, bool lru);
