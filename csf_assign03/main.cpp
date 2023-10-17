@@ -18,12 +18,12 @@ int main(int argc, char** argv) {
 
     // check that input parameters are valid 
     if (validParameters(argc, argv)) {
-        // initalize int versions of cache parameters
+        // initalize cache parameters
         int sets = std::stoi(argv[1]);
         int blocks = std::stoi(argv[2]);
         int bytes = std::stoi(argv[3]);
-        bool write_allocate = strcmp("write-allocate", argv[4]) ? true : false;
-        bool write_through = strcmp("write-through", argv[5]) ? true : false;
+        bool write_allocate = strcmp("write-allocate", argv[4]) == 0 ? true : false;
+        bool write_through = strcmp("write-through", argv[5]) == 0 ? true : false;
         bool lru = strcmp(argv[6], "lru") == 0 ? true : false;
         // initalize cache
         Cache cache = initializeCache(sets, blocks);
@@ -44,14 +44,14 @@ int main(int argc, char** argv) {
             uint32_t address;
             // separate stream into 3 distinct sections
             stream >> command >> address_str >> ignore;
-            // find tag 
-            uint32_t tag = getTag(blocks, bytes, address, sets);
-            // find index
-            uint32_t index = getIndex(blocks, bytes, address, sets);
             // address converted from hex
             address = std::stoul(address_str, nullptr, 16);
+            // find tag 
+            uint32_t tag = getTag(bytes, address, sets);
+            // find index
+            uint32_t index = getIndex(bytes, address, sets);
             if (command == "l") {
-                int cycles = cacheLoad(cache, index, tag, bytes, lru);
+                int cycles = cacheLoad(cache, index, tag, bytes, write_through, lru);
                 if (cycles == 1) {
                     load_hits++;
                 } 

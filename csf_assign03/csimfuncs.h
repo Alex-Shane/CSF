@@ -16,8 +16,7 @@ struct Set {
 
 struct Cache {
     std::vector<Set> sets;
-    bool directMapped; 
-    bool fully_associative;
+    uint32_t counter; 
 };
 
 // check that a given number is a power of two
@@ -36,16 +35,16 @@ bool isValidOption(char* input, char* option1, char* option2);
 bool validParameters(int argc, char** argv);
 
 // get the tag from a current address
-uint32_t getTag(int blocks, int bytes, uint32_t address, int sets);
+uint32_t getTag(int bytes, uint32_t address, int sets);
 
 // get the index from a current address
-uint32_t getIndex(int blocks, int bytes, uint32_t address, int sets);
+uint32_t getIndex(int bytes, uint32_t address, int sets);
 
 // initialize a cache given cache parameters
 Cache initializeCache(int numSets, int numSlots);
 
 // simulate a cache load and return the total cycles taken 
-int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lru);
+int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_through, bool lru);
 
 // simulate a cache store and return the total cycles taken
 int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru, bool* hit);
@@ -57,6 +56,6 @@ int findReplacementIndex(Set& cacheSet, bool lru);
 int findAvailableSlotIndex(Set& cacheSet);
 
 // handle the case when a store misses in a cache
-int handleStoreMiss(Set& cacheSet, uint32_t tag, int data_size, bool direct_mapped, bool write_allocate, bool write_through, bool lru);
+int handleStoreMiss(Cache& cache, Set& cacheSet, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru);
 
 #endif // CSIMFUNCS_H

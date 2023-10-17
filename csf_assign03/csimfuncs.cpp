@@ -16,11 +16,13 @@ bool isSetAndBlockValid(char* set, char* block) {
     try {
         int sets = std::stoi(set);
         int blocks = std::stoi(block);
+        // ensure positive values
         if (sets <= 0 || blocks <= 0) {
             return false;
         }
         return (checkPowerOfTwo(sets) && checkPowerOfTwo(blocks));
     }
+    // if either sets or blocks has an issue reading as an int, not valid 
     catch (std::invalid_argument& e) {
         return false;
     }
@@ -29,11 +31,13 @@ bool isSetAndBlockValid(char* set, char* block) {
 bool isByteValid(char *byte) {
     try {
         int bytes = std::stoi(byte);
+        // ensure positive value greater than or equal to 4
         if (bytes < 4) {
             return false;
         }
         return checkPowerOfTwo(bytes);
     }
+    // not valid if input couldn't be read as int 
     catch (std::invalid_argument& e) {
         return false;
     }
@@ -42,6 +46,7 @@ bool isByteValid(char *byte) {
 bool isValidOption(char* input, char* option1, char* option2) {
     int checkOption1 = strcmp(input, option1);
     int checkOption2 = strcmp(input, option2);
+    // check if the input matches either option, if so, valid, if not, invalid
     if (checkOption1 == 0 || checkOption2 == 0) {
         return true;
     }
@@ -82,37 +87,36 @@ bool validParameters(int argc, char** argv) {
     return true;
 }
 
-uint32_t getTag(int blocks, int bytes, uint32_t address, int sets) {
+uint32_t getTag(int bytes, uint32_t address, int sets) {
     // get the offset and index bits
-    int offsetBits = log(bytes) / log(2);
+    int offsetBits = log2(bytes);
     // if full associative cache, we want tag to be tag+index bits
     if (sets == 1) {
         uint32_t tag = address >> (offsetBits);
         return tag;
     }
     // if direct mapped or set associative, proceed normally with index and tag
-    int indexBits = log(blocks) / log(2);
+    int indexBits = log2(sets);
     // get the tag by getting the remaining bits of the address not made up of offset or index
     uint32_t tag = address >> (offsetBits + indexBits);
     return tag;
 }
 
-uint32_t getIndex(int blocks, int bytes, uint32_t address, int sets) {
+uint32_t getIndex(int bytes, uint32_t address, int sets) {
     // index should be zero every time if fully associative cache
     if (sets == 1) {
         return 0;
     }
     // get the offset and index bits
-    int offsetBits = log(bytes) / log(2);
-    int indexBits = log(blocks) / log(2);
-    // make every digit of index a 1
+    int offsetBits = log2(bytes);
+    int indexBits = log2(sets);
+    // make every digit in the index region of address a 1
     uint32_t indexMask = ((1 << indexBits) - 1) << offsetBits;
     // use bitwise AND to get correct digits for index and shift it right to bring index to least significant places 
     uint32_t index = (address & indexMask) >> offsetBits;
     return index;
 }
 
-// Function to initialize an empty cache
 Cache initializeCache(int numSets, int numSlotsPerSet) {
     Cache cache;
     // allocate proper memory for cache
@@ -128,7 +132,7 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
             // slot is initially not valid or dirty
             slot.valid = false;
             slot.dirty = false;
-            // slot intially has zero loads or stores
+            // slots intially have timestamps set to zero
             slot.load_ts = 0;
             slot.access_ts = 0;
             // add slot to current set
@@ -137,144 +141,142 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
         // add current set to cache
         cache.sets[i] = set;
     }
-    if (numSlotsPerSet == 1) {
-        cache.directMapped = true;
-        cache.fully_associative = false;
-    } 
-    else if (numSets == 1) {
-        cache.fully_associative = true;
-        cache.directMapped = false;
-    } 
-    else {
-        cache.directMapped = false;
-        cache.fully_associative = false;
-    }
+    // global timestamp is initally zero
+    cache.counter = 0;
     return cache;
 }
 
-// simulate a cache load, where the return int is the number of cycles the load took 
-int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool lru) {
+int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_through, bool lru) {
     Set& cacheSet = cache.sets[index];
     // Search for a matching tag in the cache set
     for (Slot& slot : cacheSet.slots) {
         if (slot.valid && slot.tag == tag) {
             // Cache hit
-            slot.access_ts++;
-            slot.load_ts++;
+            cache.counter++;
+            slot.access_ts = cache.counter;
             return 1;
         }
-        // even if slot isn't a match, update its load timestamp so that relative order stays the same
-        slot.load_ts++;
     } 
     // Determine which cache slot to use for miss 
     int slotToUpdate;
-    if (cache.directMapped) {
-        slotToUpdate = 0;
+    slotToUpdate = findAvailableSlotIndex(cacheSet);
+    // if no available slots can be used to handle miss, then we need to evict based on eviction policy
+    if (slotToUpdate == -1) {
+        slotToUpdate = findReplacementIndex(cacheSet, lru);
     }
-    else {
-        slotToUpdate = findAvailableSlotIndex(cacheSet);
-        // if no available slots can be used to handle miss, then we need to evict based on eviction policy
-        if (slotToUpdate == -1) {
-            slotToUpdate = findReplacementIndex(cacheSet, lru);
-        }
-    } 
+    int cycles = 0;
     // Replace the cache slot with the new data
     Slot& updateSlot = cacheSet.slots[slotToUpdate];
+    // if write_back and dirty, need to write to memory 
+    if (updateSlot.dirty && !write_through) {
+        cycles += 100*(data_size/4);
+    }
+    // update appropriate parameters
     updateSlot.tag = tag;
     updateSlot.valid = true;
-    updateSlot.access_ts = 0;
-    updateSlot.load_ts = 0;
+    cache.counter++;
+    updateSlot.access_ts = cache.counter;
+    updateSlot.load_ts = cache.counter;
     updateSlot.dirty = false;
-    // load miss so we have 100 cycles per 4 bytes we had to load from main memory, which is 25 cycle/byte, so 25*bytes loaded
-    return 25*data_size;
+    // load miss so we have 100 cycles per 4 bytes we had to load from main memory
+    cycles += 100*(data_size/4);
+    return cycles;
 }
 
-// simulate a cache store, where the return int is the number of cycles the store took 
-int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate,bool write_through, bool lru, bool* hit) {
+int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru, bool* hit) {
     Set& cacheSet = cache.sets[index];
     // Search for a matching tag in the cache set
     for (Slot& slot : cacheSet.slots) {
         if (slot.valid && slot.tag == tag) {
             // Cache hit
             *hit = true;
-            slot.access_ts++;
-            slot.load_ts++;
+            cache.counter++;
+            slot.access_ts = cache.counter;
             if (write_through) {
-                // store to cache is one cycle, store to memory is 25*bytes stored
-                return 1+(25*data_size);
+                // store to memory is 100 cycles
+                return 100;
             }
             else {
+                // set dirty bit and return one cycle as only cache used
                 slot.dirty = true;
                 return 1;
             }
         }
-        // even if slot isn't a match, update its timestamp
-        slot.load_ts++;
     } 
-    return handleStoreMiss(cacheSet, tag, data_size, cache.directMapped, write_allocate, write_through, lru);
+    return handleStoreMiss(cache, cacheSet, tag, data_size, write_allocate, write_through, lru);
 }
 
-int handleStoreMiss(Set& cacheSet, uint32_t tag, int data_size, bool direct_mapped, bool write_allocate, bool write_through, bool lru) {
+int handleStoreMiss(Cache& cache, Set& cacheSet, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru) {
     if (!write_allocate) {
         // for no-write-allocate and write-through, we just store to memory
-        return 25*data_size;
+        return 100;
     }
     int cycles = 0;
     // Determine which cache slot to use for miss 
     int slotToUpdate;
-    if (direct_mapped) {
-        slotToUpdate = 0;
-    }
-    else {
-        slotToUpdate = findAvailableSlotIndex(cacheSet);
-        // if no available slots can be used to handle miss, then we need to evict based on eviction policy
-        if (slotToUpdate == -1) {
-            slotToUpdate = findReplacementIndex(cacheSet, lru);
-        }
+    slotToUpdate = findAvailableSlotIndex(cacheSet);
+    // if no available slots can be used to handle miss, then we need to evict based on eviction policy
+    if (slotToUpdate == -1) {
+        slotToUpdate = findReplacementIndex(cacheSet, lru);
     }
     // update the cache slot with the new data
     Slot& updateSlot = cacheSet.slots[slotToUpdate];
-    if (write_through || updateSlot.dirty) {
+    // if write_through, we know cache is write allocate write through
+    if (write_through) {
+        cycles = 100+(100*(data_size/4)); 
+    }
+    // if evicted block is dirty
+    else if (!write_through && updateSlot.dirty) {
         // we had to load from mem and store to cache if w.t, and write to mem and store to cache if write-back
-        cycles = 1+(25*data_size);
+        cycles = 2*(100*(data_size/4));
     }
     else {
         // if write-back and evicted/updated block isn't dirty, just one cycle
-        cycles = 1;
+        cycles = 100*(data_size/4);
     }
+    // update appropriate parameters of slot 
     updateSlot.tag = tag;
     updateSlot.valid = true;
-    updateSlot.load_ts = 0;
-    updateSlot.access_ts = 0;
-    updateSlot.dirty = false;
+    cache.counter++;
+    updateSlot.load_ts = cache.counter;
+    updateSlot.access_ts = cache.counter;
+    // if write_back, set dirty bit
+    if (!write_through) {
+        updateSlot.dirty = true;
+    }
+    else{
+        updateSlot.dirty = false;
+    }
     return cycles;
 }
 
 
 int findAvailableSlotIndex(Set& cacheSet) {
+    // go through set and check if any slot isn't valid, meaning it's open
     for (int i = 0; i < (int) cacheSet.slots.size(); i++) {
         if (cacheSet.slots[i].valid == false) {
             return i;
         }
     }
+    // if no slots open, return negative one
     return -1;
 }
 
 int findReplacementIndex(Set& cacheSet, bool lru) {
     int index = 0;
     if (lru) {
-            uint32_t leastUsed = cacheSet.slots[0].access_ts;
-            // Iterate through all slots in the set to find the slot with the smallest access_ts.
-            for (int i = 1; i < (int) cacheSet.slots.size(); ++i) {
-                if (cacheSet.slots[i].access_ts < leastUsed) {
-                    leastUsed = cacheSet.slots[i].access_ts;
-                    index = i;
-                }
+        uint32_t leastUsed = cacheSet.slots[0].access_ts;
+        // Iterate through all slots in the set to find the slot with the smallest access_ts, meaning it was least recently used
+        for (int i = 1; i < (int) cacheSet.slots.size(); ++i) {
+            if (cacheSet.slots[i].access_ts < leastUsed) {
+                leastUsed = cacheSet.slots[i].access_ts;
+                index = i;
             }
         }
+    }
     else {
         uint32_t oldest = cacheSet.slots[0].load_ts;
-            // Iterate through all slots in the set to find the slot with the smallest access_ts.
+            // Iterate through all slots in the set to find the slot with the smallest load_ts, meaning it's the oldest slot in set
         for (int i = 1; i < (int) cacheSet.slots.size(); ++i) {
             if (cacheSet.slots[i].load_ts < oldest) {
                 oldest = cacheSet.slots[i].load_ts;
