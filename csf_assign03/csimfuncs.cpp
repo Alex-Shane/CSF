@@ -5,6 +5,7 @@
 #include <cstring>
 #include "csimfuncs.h"
 #include <cmath>
+#include <map>
 
 bool checkPowerOfTwo(int num) {
     // power of 2 only has one bit set so if we check bits of num
@@ -84,6 +85,11 @@ bool validParameters(int argc, char** argv) {
         std::cerr << "Please enter either lru or fifo for the 7th parameter" << std::endl;
         return false;
     }
+    // check that we don't have invalid combo of n.w.a and w.b
+    if (strcmp(argv[4], "no-write-allocate") == 0 && strcmp(argv[5], "write-back") == 0) {
+        std::cerr << "Please enter a different combination that doesn't use no-write-allocate and write-back together" << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -148,62 +154,56 @@ Cache initializeCache(int numSets, int numSlotsPerSet) {
 
 int cacheLoad(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_through, bool lru) {
     Set& cacheSet = cache.sets[index];
-    // Search for a matching tag in the cache set
-    for (Slot& slot : cacheSet.slots) {
-        if (slot.valid && slot.tag == tag) {
-            // Cache hit
-            cache.counter++;
-            slot.access_ts = cache.counter;
-            return 1;
+    try {
+        Slot& slot = *cacheSet.tagMap.at(tag);
+        cache.counter++;
+        slot.access_ts = cache.counter;
+        return 1;
+    } catch (const std::out_of_range&) {
+        // Determine which cache slot to use for miss 
+        int cycles = 0, slotToUpdate = 0;
+        slotToUpdate = findAvailableSlotIndex(cacheSet);
+        // if no available slots can be used to handle miss, then we need to evict based on eviction policy
+        if (slotToUpdate == -1) {
+            slotToUpdate = findReplacementIndex(cacheSet, lru);
+            // update map due to eviction
+            cacheSet.tagMap.erase(cacheSet.slots[slotToUpdate].tag);
         }
-    } 
-    // Determine which cache slot to use for miss 
-    int slotToUpdate;
-    slotToUpdate = findAvailableSlotIndex(cacheSet);
-    // if no available slots can be used to handle miss, then we need to evict based on eviction policy
-    if (slotToUpdate == -1) {
-        slotToUpdate = findReplacementIndex(cacheSet, lru);
-    }
-    int cycles = 0;
-    // Replace the cache slot with the new data
-    Slot& updateSlot = cacheSet.slots[slotToUpdate];
-    // if write_back and dirty, need to write to memory 
-    if (updateSlot.dirty && !write_through) {
+        // Replace the cache slot with the new data
+        Slot& updateSlot = cacheSet.slots[slotToUpdate];
+        // if write_back and dirty, need to write to memory 
+        if (updateSlot.dirty && !write_through) {
+            cycles += 100*(data_size/4);
+        }
+        // update appropriate parameters
+        updateSlotParameters(cache, cacheSet, updateSlot, tag, write_through, true);
+        // load miss so we have 100 cycles per 4 bytes we had to load from main memory
         cycles += 100*(data_size/4);
+        return cycles;
     }
-    // update appropriate parameters
-    updateSlot.tag = tag;
-    updateSlot.valid = true;
-    cache.counter++;
-    updateSlot.access_ts = cache.counter;
-    updateSlot.load_ts = cache.counter;
-    updateSlot.dirty = false;
-    // load miss so we have 100 cycles per 4 bytes we had to load from main memory
-    cycles += 100*(data_size/4);
-    return cycles;
 }
 
 int cacheStore(Cache& cache, uint32_t index, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru, bool* hit) {
     Set& cacheSet = cache.sets[index];
-    // Search for a matching tag in the cache set
-    for (Slot& slot : cacheSet.slots) {
-        if (slot.valid && slot.tag == tag) {
-            // Cache hit
-            *hit = true;
-            cache.counter++;
-            slot.access_ts = cache.counter;
-            if (write_through) {
-                // store to memory is 100 cycles
-                return 100;
-            }
-            else {
-                // set dirty bit and return one cycle as only cache used
-                slot.dirty = true;
-                return 1;
-            }
+    // check if we have a hit
+    try {
+        Slot& slot = *cacheSet.tagMap.at(tag);
+        // Cache hit
+        *hit = true;
+        cache.counter++;
+        slot.access_ts = cache.counter;
+        if (write_through) {
+            // store to memory is 100 cycles
+            return 100;
         }
-    } 
-    return handleStoreMiss(cache, cacheSet, tag, data_size, write_allocate, write_through, lru);
+        else {
+            // set dirty bit and return one cycle as only cache used
+            slot.dirty = true;
+            return 1;
+        }
+    } catch (const std::out_of_range&) {
+        return handleStoreMiss(cache, cacheSet, tag, data_size, write_allocate, write_through, lru);
+    }
 }
 
 int handleStoreMiss(Cache& cache, Set& cacheSet, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru) {
@@ -211,13 +211,14 @@ int handleStoreMiss(Cache& cache, Set& cacheSet, uint32_t tag, int data_size, bo
         // for no-write-allocate and write-through, we just store to memory
         return 100;
     }
-    int cycles = 0;
+    int cycles = 0, slotToUpdate = 0;
     // Determine which cache slot to use for miss 
-    int slotToUpdate;
     slotToUpdate = findAvailableSlotIndex(cacheSet);
     // if no available slots can be used to handle miss, then we need to evict based on eviction policy
     if (slotToUpdate == -1) {
         slotToUpdate = findReplacementIndex(cacheSet, lru);
+        // update map due to eviction
+        cacheSet.tagMap.erase(cacheSet.slots[slotToUpdate].tag);
     }
     // update the cache slot with the new data
     Slot& updateSlot = cacheSet.slots[slotToUpdate];
@@ -225,28 +226,17 @@ int handleStoreMiss(Cache& cache, Set& cacheSet, uint32_t tag, int data_size, bo
     if (write_through) {
         cycles = 100+(100*(data_size/4)); 
     }
-    // if evicted block is dirty
-    else if (!write_through && updateSlot.dirty) {
-        // we had to load from mem and store to cache if w.t, and write to mem and store to cache if write-back
-        cycles = 2*(100*(data_size/4));
-    }
     else {
-        // if write-back and evicted/updated block isn't dirty, just one cycle
-        cycles = 100*(data_size/4);
+        // if evicting dirty block, then more cycles than if not dirty block
+        if (updateSlot.dirty) {
+            cycles = 2*(100*(data_size/4));
+        }
+        else {
+            cycles = 100*(data_size/4);
+        }
     }
     // update appropriate parameters of slot 
-    updateSlot.tag = tag;
-    updateSlot.valid = true;
-    cache.counter++;
-    updateSlot.load_ts = cache.counter;
-    updateSlot.access_ts = cache.counter;
-    // if write_back, set dirty bit
-    if (!write_through) {
-        updateSlot.dirty = true;
-    }
-    else{
-        updateSlot.dirty = false;
-    }
+    updateSlotParameters(cache, cacheSet, updateSlot, tag, write_through, false);
     return cycles;
 }
 
@@ -285,4 +275,26 @@ int findReplacementIndex(Set& cacheSet, bool lru) {
         }
     }
     return index;
+}
+
+void updateSlotParameters(Cache& cache, Set& cacheSet, Slot& updateSlot, uint32_t tag, bool write_through, bool load) {
+    updateSlot.tag = tag;
+    updateSlot.valid = true;
+    cache.counter++;
+    updateSlot.access_ts = cache.counter;
+    updateSlot.load_ts = cache.counter;
+    // if we're loading, dirty bit doesn't matter and stays false
+    if (load) {
+        updateSlot.dirty = false;
+    }
+    // if we're storing, dirty bit only set if write_back
+    else {
+        if (write_through) {
+            updateSlot.dirty = false;
+        }
+        else {
+            updateSlot.dirty = true;
+        }
+    }
+    cacheSet.tagMap[tag] = &updateSlot;
 }

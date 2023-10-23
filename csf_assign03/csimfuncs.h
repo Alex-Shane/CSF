@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <vector>
+#include <map>
 
 #ifndef CSIMFUNCS_H
 #define CSIMFUNCS_H
@@ -12,6 +13,7 @@ struct Slot {
 
 struct Set {
     std::vector<Slot> slots;
+    std::map<uint32_t, Slot*> tagMap; 
 };
 
 struct Cache {
@@ -57,5 +59,8 @@ int findAvailableSlotIndex(Set& cacheSet);
 
 // handle the case when a store misses in a cache
 int handleStoreMiss(Cache& cache, Set& cacheSet, uint32_t tag, int data_size, bool write_allocate, bool write_through, bool lru);
+
+// handles updating slot parameters after a miss
+void updateSlotParameters(Cache& cache, Set& cacheSet, Slot& updateSlot, uint32_t tag, bool write_through, bool load);
 
 #endif // CSIMFUNCS_H
