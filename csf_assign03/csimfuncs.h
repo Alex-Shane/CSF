@@ -13,11 +13,13 @@ struct Slot {
 
 struct Set {
     std::vector<Slot> slots;
+    // map to speed up checking for load/store hit
     std::map<uint32_t, Slot*> tagMap; 
 };
 
 struct Cache {
     std::vector<Set> sets;
+    // global timestamp counter
     uint32_t counter; 
 };
 
