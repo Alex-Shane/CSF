@@ -62,6 +62,7 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   size_t size = end - begin;
 
   if (size <= threshold) {
+    // should this be seq sort or qsort?
     seq_sort(arr, begin, end);
     return;
   }
@@ -74,40 +75,42 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   pid_t left_child, right_child;
   left_child = fork();
 
-  // check that child process made successfully
-  if (left_child < 0) {
-    fatal("Fork failed");
-  } else if (left_child == 0) {
-    // In the left child process, sort the left half recursively
+  // check if left fork was successful
+  if (left_child == 0) {
+    // if successful, then merge sort
     merge_sort(arr, begin, mid, threshold);
-    // Terminate the left child once its process finishes
-    exit(0);  
-  } else {
-    right_child = fork();
-    // check if fork failed
-    if (right_child < 0) {
-      fatal("Fork failed");
-    } else if (right_child == 0) {
-      // In the right child process, sort the right half recursively
-      merge_sort(arr, mid, end, threshold);
-      // Terminate the right child process once its process finishes
-      exit(0);  
-    }
+    exit(0);
+  }
+
+  right_child = fork();
+  // if fork successful, then merge sort
+  if (right_child == 0) {
+    merge_sort(arr, mid, end, threshold);
+    exit(0);
   }
 
   // Parent process waits for both child processes to complete
-  int status;
-  waitpid(left_child, &status, 0);
-  waitpid(right_child, &status, 0);
-  if (!WIFEXITED(status)) {
+  int status_left, status_right;
+  pid_t left = waitpid(left_child, &status_left, 0);
+  // if left child process returned with id of -1, error occured in child process
+  if (left == -1) {
+    // do I need to check for right process here too??
+    fatal("Waitpid failure. Please try again");
+  }
+  pid_t right = waitpid(right_child, &statu_rights, 0);
+  if (right == -1) {
+    fatal("Waitpid failure. Please try again");
+  }
+
+  if (!WIFEXITED(status_left) || !WIFEXITED(status_right)) {
     // subprocess crashed, was interrupted, or did not exit normally
     fatal("Subprocess crashed, was interrupted, or did not exit normally.");
-}
-if (WEXITSTATUS(status) != 0) {
+  }
+  if (WEXITSTATUS(status_left) != 0 || WEXITSTATUS(status_right) != 0) {
     // subprocess returned a non-zero exit code
     // if following standard UNIX conventions, this is also an error
     fatal("Subprocess didn't return zero exit code");
-}
+  }
 
   // allocate temp array now, so we can avoid unnecessary work
   // if the malloc fails
@@ -145,38 +148,39 @@ int main(int argc, char **argv) {
     fatal("Threshold value is invalid");
   }
 
-// try to open file
-int fd = open(filename, O_RDWR);
-if (fd < 0) {
-  fatal("Your file could not be opened. Please use another file");
-}
-struct stat statbuf;
-int rc = fstat(fd, &statbuf);
-// check that fstat worked
-if (rc != 0) {
-  fatal("There was an error with fstat. Please try again.");
-}
-// get file size
-size_t file_size_in_bytes = statbuf.st_size;
-int64_t *data = mmap(NULL, file_size_in_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)
-// close file descriptor, do I do this here or below??
-close(fd);
-// check that mmap was successful
-if (data == MAP_FAILED) {
-    fatal("There was an mmap error. Please try again.");
-}
+  // try to open file
+  int fd = open(filename, O_RDWR);
+  if (fd < 0) {
+    fatal("Your file could not be opened. Please use another file");
+  }
+  struct stat statbuf;
+  int rc = fstat(fd, &statbuf);
+  // check that fstat worked
+  if (rc != 0) {
+    fatal("There was an error with fstat. Please try again.");
+  }
+  // get file size
+  size_t file_size_in_bytes = statbuf.st_size;
+  int64_t *data = mmap(NULL, file_size_in_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)
 
-merge_sort(data, 0, file_size_in_elements, threshold);
+  // check that mmap was successful
+  if (data == MAP_FAILED) {
+      fatal("There was an mmap error. Please try again.");
+  }
+
+  // get file size in terms of elements of array
+  size_t len_arr = file_size_in_bytes/sizeof(int64_t);
+  merge_sort(data, 0, len_arr, threshold);
 
   // Unmap the memory-mapped file
-if (munmap(data, file_size_in_bytes) == -1) {
-   fatal("Munmap failed! Please try process again.");
-}
+  if (munmap(data, file_size_in_bytes) == -1) {
+    fatal("Munmap failed! Please try process again.");
+  }
 
-// Close the file
-if (close(fd) == -1) {
-    fatal("Error in closing file. Please try running again.");
-}
+  // Close the file
+  if (close(fd) == -1) {
+      fatal("Error in closing file. Please try running again.");
+  }
 
-return 0;
+  return 0;
 }
