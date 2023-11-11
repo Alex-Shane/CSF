@@ -62,7 +62,6 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   size_t size = end - begin;
 
   if (size <= threshold) {
-    // should this be seq sort or qsort?
     seq_sort(arr, begin, end);
     return;
   }
@@ -75,37 +74,54 @@ void merge_sort(int64_t *arr, size_t begin, size_t end, size_t threshold) {
   pid_t left_child, right_child;
   left_child = fork();
 
-  // check if left fork was successful
+  // check for fork error
+  if (left_child == -1) {
+    fatal("Fork failed!");
+  }
+
+  // if fork successful, then merge sort on the left half of the array
   if (left_child == 0) {
-    // if successful, then merge sort
     merge_sort(arr, begin, mid, threshold);
     exit(0);
   }
 
+  // make fork for right child process
   right_child = fork();
+
+  // check for fork error
+  if (right_child == -1) {
+    fatal("Fork failed!");
+  }
+  
   // if fork successful, then merge sort
   if (right_child == 0) {
+    // merge_sort right half of array
     merge_sort(arr, mid, end, threshold);
     exit(0);
   }
 
   // Parent process waits for both child processes to complete
   int status_left, status_right;
+
   pid_t left = waitpid(left_child, &status_left, 0);
   // if left child process returned with id of -1, error occured in child process
   if (left == -1) {
-    // do I need to check for right process here too??
     fatal("Waitpid failure. Please try again");
   }
-  pid_t right = waitpid(right_child, &statu_rights, 0);
+
+  pid_t right = waitpid(right_child, &status_right, 0);
+  // if right child process returned with id of -1, error occured in child process
   if (right == -1) {
     fatal("Waitpid failure. Please try again");
   }
 
+  // check that both child processes exited normally
   if (!WIFEXITED(status_left) || !WIFEXITED(status_right)) {
     // subprocess crashed, was interrupted, or did not exit normally
     fatal("Subprocess crashed, was interrupted, or did not exit normally.");
   }
+
+  // check that the exit status of both child processes is healthy 
   if (WEXITSTATUS(status_left) != 0 || WEXITSTATUS(status_right) != 0) {
     // subprocess returned a non-zero exit code
     // if following standard UNIX conventions, this is also an error
@@ -144,7 +160,6 @@ int main(int argc, char **argv) {
   char *end;
   size_t threshold = (size_t) strtoul(argv[2], &end, 10);
   if (end != argv[2] + strlen(argv[2])) {
-    // is this right?
     fatal("Threshold value is invalid");
   }
 
@@ -153,15 +168,18 @@ int main(int argc, char **argv) {
   if (fd < 0) {
     fatal("Your file could not be opened. Please use another file");
   }
+
+  // use fstat to get file size in terms of bytes
   struct stat statbuf;
   int rc = fstat(fd, &statbuf);
   // check that fstat worked
   if (rc != 0) {
     fatal("There was an error with fstat. Please try again.");
   }
+
   // get file size
   size_t file_size_in_bytes = statbuf.st_size;
-  int64_t *data = mmap(NULL, file_size_in_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)
+  int64_t *data = mmap(NULL, file_size_in_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
   // check that mmap was successful
   if (data == MAP_FAILED) {
