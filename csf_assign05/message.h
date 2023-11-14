@@ -18,8 +18,6 @@ struct Message {
 
   Message(const std::string &tag, const std::string &data)
     : tag(tag), data(data) { }
-
-  // TODO: you could add helper functions
 };
 
 // standard message tags (note that you don't need to worry about

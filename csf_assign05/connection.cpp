@@ -1,6 +1,7 @@
 #include <sstream>
 #include <cctype>
 #include <cassert>
+#include <string>
 #include "csapp.h"
 #include "message.h"
 #include "connection.h"
@@ -13,34 +14,69 @@ Connection::Connection()
 Connection::Connection(int fd)
   : m_fd(fd)
   , m_last_result(SUCCESS) {
-  // TODO: call rio_readinitb to initialize the rio_t object
+  rio_readinitb(&m_fdbuf, fd);
 }
 
 void Connection::connect(const std::string &hostname, int port) {
-  // TODO: call open_clientfd to connect to the server
-  // TODO: call rio_readinitb to initialize the rio_t object
+  m_fd = open_clientfd(hostname.cstring(), std::to_string(port).cstring());
+  // check if connection failed 
+  if (m_fd < 0) {
+    std::cerr << "Error: Connection failed";
+  }
+  // initialize rio_t obj 
+  rio_readinitb(&m_fdbuf, fd);
 }
 
 Connection::~Connection() {
-  // TODO: close the socket if it is open
+  // close call handles checking if connection open or not
+  close();
 }
 
 bool Connection::is_open() const {
-  // TODO: return true if the connection is open
+  return m_fd >= 0;
 }
 
 void Connection::close() {
-  // TODO: close the connection if it is open
+  // close the connection if it is open
+  if (is_open()) {
+    Close(m_fd);
+  }
 }
 
 bool Connection::send(const Message &msg) {
-  // TODO: send a message
-  // return true if successful, false if not
-  // make sure that m_last_result is set appropriately
+  // does this account for both "\n" and "\r\n" delimiters?
+  std::string msg_str = msg.tag + ":" + msg.data + "\n";
+  size_t msg_size = msg_str.size();
+  // check if msg size is valid 
+  if (msg_size > MAX_LEN) {
+    m_last_result = INVALID_MSG;
+    return false; 
+  }
+  ssize_t result = rio_writen(m_fd, msg_str.c_str(), msg_str.size());
+  // if there was error with rio_written, set last result to error state
+  if (result < 0) {
+    m_last_result = EOF_OR_ERROR;
+    return false;
+  }
+  // if no error, we have success
+  m_last_result = SUCCESS;
+  return true;
 }
 
 bool Connection::receive(Message &msg) {
-  // TODO: receive a message, storing its tag and data in msg
-  // return true if successful, false if not
-  // make sure that m_last_result is set appropriately
+  char msg_buf[256];
+  ssize_t read_result = rio_readlineb(&m_fdbuf, msg_buf, 256);
+  // if error in reading, then message was too long and thus invalid
+  if (receive_result < 0) {
+    m_last_result = INVALID_MSG;
+    return false;
+  }
+  std::string message(msg_buf);
+  int tag_end = message.find(':');
+  // use colon index to get tag and data
+  msg.tag = message.substr(0,tag_end);
+  msg.data = message.substr(tag_end + 1);
+  // return that we successfully received message 
+  m_last_result = SUCCESS;
+  return true;
 }
