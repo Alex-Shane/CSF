@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <tuple>
 #include "csapp.h"
 #include "message.h"
 #include "connection.h"
@@ -19,15 +20,63 @@ int main(int argc, char **argv) {
   std::string room_name = argv[4];
 
   Connection conn;
+  // attempt to connect to server
+  conn.connect(server_hostname, server_port);
+  // check that server opened successfully
+  if (!conn.is_open()) {
+    return 1;
+  }
 
-  // TODO: connect to server
+  // attempt to login
+  bool login = conn.send(Message(TAG_RLOGIN, username));
+  // catch failure to log in
+  if (!login) {
+    std::cerr << "Error: failed to send login message to server\n";
+    return 1;
+  }
 
-  // TODO: send rlogin and join messages (expect a response from
-  //       the server for each one)
+  // get login response
+  Message login_response = Message();
+  conn.receive(login_response);
+  // if getting login response failed, catch it
+  if (login_response.tag == TAG_ERR) {
+    std::cerr << login_response.data;
+    return 1;
+  }
 
-  // TODO: loop waiting for messages from server
-  //       (which should be tagged with TAG_DELIVERY)
+  // try to join room
+  bool success = conn.send(Message(TAG_JOIN, room_name));
+  if (!success) {
+    std::cerr << "Error: failed to send join message to server\n";
+    return 1;
+  }
 
+  // get join response 
+  Message join_response = Message();
+  conn.receive(join_response);
+  if (join_response.tag == TAG_ERR) {
+    std::cerr << join_response.data;
+    return 1;
+  }
+
+  // wait for messages from server
+  while (1) {
+    Message msg = Message();
+    bool success = conn.receive(msg);
+    // make sure message received successfully
+    if (!success) {
+      break;
+    }
+    // output message only if tag is delievery 
+    if (msg.tag == TAG_DELIVERY) {
+      std::string sender, message;
+      std::tie(sender, message) = deconstructDelivery(msg.data);
+      std::cout << sender << ": " << message;
+    }
+  }
+
+  // close connection when loop terminated
+  conn.close();
 
   return 0;
 }

@@ -14,4 +14,7 @@ std::string trim(const std::string &s);
 
 // you can add additional declarations here...
 
+// split delievery by colons and return the username of sender and message 
+std::pair<std::string, std::string> deconstructDelivery(std::string msg_data);
+
 #endif // CLIENT_UTIL_H

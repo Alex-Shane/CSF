@@ -2,6 +2,7 @@
 #include <cctype>
 #include <cassert>
 #include <string>
+#include <iostream>
 #include "csapp.h"
 #include "message.h"
 #include "connection.h"
@@ -18,13 +19,13 @@ Connection::Connection(int fd)
 }
 
 void Connection::connect(const std::string &hostname, int port) {
-  m_fd = open_clientfd(hostname.cstring(), std::to_string(port).cstring());
+  m_fd = open_clientfd(hostname.c_str(), std::to_string(port).c_str());
   // check if connection failed 
   if (m_fd < 0) {
     std::cerr << "Error: Connection failed";
   }
   // initialize rio_t obj 
-  rio_readinitb(&m_fdbuf, fd);
+  rio_readinitb(&m_fdbuf, m_fd);
 }
 
 Connection::~Connection() {
@@ -48,7 +49,7 @@ bool Connection::send(const Message &msg) {
   std::string msg_str = msg.tag + ":" + msg.data + "\n";
   size_t msg_size = msg_str.size();
   // check if msg size is valid 
-  if (msg_size > MAX_LEN) {
+  if (msg_size > Message::MAX_LEN) {
     m_last_result = INVALID_MSG;
     return false; 
   }
@@ -64,11 +65,11 @@ bool Connection::send(const Message &msg) {
 }
 
 bool Connection::receive(Message &msg) {
-  char msg_buf[256];
-  ssize_t read_result = rio_readlineb(&m_fdbuf, msg_buf, 256);
+  char msg_buf[Message::MAX_LEN];
+  ssize_t read_result = rio_readlineb(&m_fdbuf, msg_buf, Message::MAX_LEN);
   // if error in reading, then message was too long and thus invalid
-  if (receive_result < 0) {
-    m_last_result = INVALID_MSG;
+  if (read_result < 0) {
+    m_last_result = EOF_OR_ERROR;
     return false;
   }
   std::string message(msg_buf);
