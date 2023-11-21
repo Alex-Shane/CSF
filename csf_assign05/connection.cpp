@@ -41,6 +41,8 @@ void Connection::close() {
   // close the connection if it is open
   if (is_open()) {
     Close(m_fd);
+    // set fd to -1 so is open actually works
+    m_fd = -1;
   }
 }
 

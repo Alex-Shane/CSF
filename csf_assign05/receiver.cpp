@@ -70,13 +70,14 @@ int main(int argc, char **argv) {
     // output message only if tag is delievery 
     if (msg.tag == TAG_DELIVERY) {
       std::string sender, message;
-      std::tie(sender, message) = deconstructDelivery(msg.data);
+      std::pair<std::string, std::string> msg_info = deconstructDelivery(msg.data);
+      sender = msg_info.first;
+      message = msg_info.second; 
       std::cout << sender << ": " << message;
     }
   }
 
   // close connection when loop terminated
   conn.close();
-
   return 0;
 }

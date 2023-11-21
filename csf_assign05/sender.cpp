@@ -56,8 +56,9 @@ int main(int argc, char **argv) {
       std::cout << input << '\n';
       // check for quit command
       if (input == "/quit") {
-        // set tag
+        // set tag and data
         msg.tag = TAG_QUIT;
+        msg.data = "bye";
         // try to quit out of sender, if not, throw error 
         bool quit = conn.send(msg);
         if (!quit) {
@@ -75,10 +76,10 @@ int main(int argc, char **argv) {
         // break out of program no matter what since quit command 
         break;
       }
-
-      // handle leave (only tag matters)
+      // handle leave 
       if (input == "/leave") {
         msg.tag = TAG_LEAVE;
+        msg.data = "bye";
       }
       // handle join
       else if (input.substr(0,5) == "/join") {
@@ -92,7 +93,6 @@ int main(int argc, char **argv) {
         msg.tag = TAG_SENDALL;
         msg.data = input;
       }
-
       // send message to server communicating the input
       bool success = conn.send(msg);
       // if send failed, throw error
@@ -108,9 +108,8 @@ int main(int argc, char **argv) {
         std::cerr << response.data;
       }
     }
-
+    
     // close connection 
     conn.close();
-
     return 0;
 }

@@ -14,8 +14,7 @@ struct Message {
   std::string tag;
   std::string data;
 
-  // make default constructor set tag and data to empty strings 
-  Message() : tag(""), data("") {}
+  Message() { }
 
   Message(const std::string &tag, const std::string &data)
     : tag(tag), data(data) { }
