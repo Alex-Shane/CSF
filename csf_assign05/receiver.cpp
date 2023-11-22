@@ -67,12 +67,13 @@ int main(int argc, char **argv) {
     if (!success) {
       break;
     }
-    // output message only if tag is delievery 
+    // output message only if tag is delivery
     if (msg.tag == TAG_DELIVERY) {
       std::string sender, message;
-      std::pair<std::string, std::string> msg_info = deconstructDelivery(msg.data);
-      sender = msg_info.first;
-      message = msg_info.second; 
+      // split the message data into its components
+      std::vector<std::string> msg_info = splitMsgData(msg.data);
+      sender = msg_info[1];
+      message = msg_info[2]; 
       std::cout << sender << ": " << message;
     }
   }

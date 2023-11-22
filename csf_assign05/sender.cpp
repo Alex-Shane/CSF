@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
       }
       // if command isn't quit, leave, or join, then data is just what user inputted 
       else {
-        std::cout << "successfully reached sendall" << '\n';
         msg.tag = TAG_SENDALL;
         msg.data = input;
       }
