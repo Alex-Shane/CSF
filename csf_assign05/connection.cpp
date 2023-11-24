@@ -22,7 +22,7 @@ void Connection::connect(const std::string &hostname, int port) {
   m_fd = open_clientfd(hostname.c_str(), std::to_string(port).c_str());
   // check if connection failed 
   if (m_fd < 0) {
-    std::cerr << "Error: Connection failed";
+    std::cerr << "Error: Connection failed\n";
   }
   // initialize rio_t obj 
   rio_readinitb(&m_fdbuf, m_fd);
@@ -47,7 +47,6 @@ void Connection::close() {
 }
 
 bool Connection::send(const Message &msg) {
-  // does this account for both "\n" and "\r\n" delimiters?
   std::string msg_str = msg.tag + ":" + msg.data + "\n";
   size_t msg_size = msg_str.size();
   // check if msg size is valid 
@@ -55,9 +54,9 @@ bool Connection::send(const Message &msg) {
     m_last_result = INVALID_MSG;
     return false; 
   }
-  ssize_t result = rio_writen(m_fd, msg_str.c_str(), msg_str.size());
+  ssize_t bytes_writen = rio_writen(m_fd, msg_str.c_str(), msg_str.size());
   // if there was error with rio_written, set last result to error state
-  if (result < 0) {
+  if (bytes_writen < 0) {
     m_last_result = EOF_OR_ERROR;
     return false;
   }
@@ -67,14 +66,17 @@ bool Connection::send(const Message &msg) {
 }
 
 bool Connection::receive(Message &msg) {
-  char msg_buf[Message::MAX_LEN];
-  ssize_t read_result = rio_readlineb(&m_fdbuf, msg_buf, Message::MAX_LEN);
+  char buf[Message::MAX_LEN];
+  ssize_t bytes_read = rio_readlineb(&m_fdbuf, buf, Message::MAX_LEN);
   // if error in reading, then message was too long and thus invalid
-  if (read_result < 0) {
+  if (bytes_read < 0) {
     m_last_result = EOF_OR_ERROR;
     return false;
   }
-  std::string message(msg_buf);
+  // make message string and assign it to the buf array 
+  std::string message;
+  message.assign(buf);
+  // find colon to determine when tag ends and data/payload starts 
   int tag_end = message.find(':');
   // use colon index to get tag and data
   msg.tag = message.substr(0,tag_end);

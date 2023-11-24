@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
   // catch failure to log in
   if (!login) {
     std::cerr << "Error: failed to send login message to server\n";
+    conn.close();
     return 1;
   }
 
@@ -41,6 +42,7 @@ int main(int argc, char **argv) {
   // if getting login response failed, catch it
   if (login_response.tag == TAG_ERR) {
     std::cerr << login_response.data;
+    conn.close();
     return 1;
   }
 
@@ -48,6 +50,7 @@ int main(int argc, char **argv) {
   bool success = conn.send(Message(TAG_JOIN, room_name));
   if (!success) {
     std::cerr << "Error: failed to send join message to server\n";
+    conn.close();
     return 1;
   }
 
@@ -56,6 +59,7 @@ int main(int argc, char **argv) {
   conn.receive(join_response);
   if (join_response.tag == TAG_ERR) {
     std::cerr << join_response.data;
+    conn.close();
     return 1;
   }
 

@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
   // catch failure to log in
   if (!login) {
     std::cerr << "Error: failed to send login message to server\n";
+    conn.close();
     return 1;
   }
 
@@ -53,7 +54,6 @@ int main(int argc, char **argv) {
       std::string input;
       // get the user input
       std::getline(std::cin, input);
-      std::cout << input << '\n';
       // check for quit command
       if (input == "/quit") {
         // set tag and data
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
           std::cerr << response.data;
           return 1;
         }
-        // break out of program no matter what since quit command 
+        // break out of program if successful quit so loop stops 
         break;
       }
       // handle leave 
