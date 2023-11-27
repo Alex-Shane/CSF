@@ -20,12 +20,10 @@ Connection::Connection(int fd)
 
 void Connection::connect(const std::string &hostname, int port) {
   m_fd = open_clientfd(hostname.c_str(), std::to_string(port).c_str());
-  // check if connection failed 
-  if (m_fd < 0) {
-    std::cerr << "Error: Connection failed\n";
+  // initialize rio_t obj if successful connection 
+  if (m_fd >= 0) {
+    rio_readinitb(&m_fdbuf, m_fd);
   }
-  // initialize rio_t obj 
-  rio_readinitb(&m_fdbuf, m_fd);
 }
 
 Connection::~Connection() {
@@ -41,12 +39,13 @@ void Connection::close() {
   // close the connection if it is open
   if (is_open()) {
     Close(m_fd);
-    // set fd to -1 so is open actually works
+    // set fd to -1 so is_open actually works
     m_fd = -1;
   }
 }
 
 bool Connection::send(const Message &msg) {
+  // turn msg into string
   std::string msg_str = msg.tag + ":" + msg.data + "\n";
   size_t msg_size = msg_str.size();
   // check if msg size is valid 
@@ -54,9 +53,10 @@ bool Connection::send(const Message &msg) {
     m_last_result = INVALID_MSG;
     return false; 
   }
+  // write message 
   ssize_t bytes_writen = rio_writen(m_fd, msg_str.c_str(), msg_str.size());
   // if there was error with rio_written, set last result to error state
-  if (bytes_writen < 0) {
+  if (bytes_writen != static_cast<ssize_t>(msg_str.size())) {
     m_last_result = EOF_OR_ERROR;
     return false;
   }
@@ -66,9 +66,11 @@ bool Connection::send(const Message &msg) {
 }
 
 bool Connection::receive(Message &msg) {
+  // allocate char array that can hold largest message 
   char buf[Message::MAX_LEN];
+  // read message 
   ssize_t bytes_read = rio_readlineb(&m_fdbuf, buf, Message::MAX_LEN);
-  // if error in reading, then message was too long and thus invalid
+  // check for error in reading
   if (bytes_read < 0) {
     m_last_result = EOF_OR_ERROR;
     return false;

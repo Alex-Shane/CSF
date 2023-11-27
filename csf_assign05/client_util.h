@@ -20,7 +20,4 @@ void outputMsg(const std::string &msg);
 // helper function to validate msg 
 void validateMsg(Message& msg, Connection& conn);
 
-// function to handle quit command
-int handleQuit(Message& msg, Connection& conn);
-
 #endif // CLIENT_UTIL_H

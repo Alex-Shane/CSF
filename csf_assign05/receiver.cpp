@@ -24,12 +24,14 @@ int main(int argc, char **argv) {
   conn.connect(server_hostname, server_port);
   // check that server opened successfully
   if (!conn.is_open()) {
+    std::cerr << "Couldn't establish connection\n";
     return 1;
   }
 
   // attempt to login and catch if failure to log in
-  if (!conn.send(Message(TAG_RLOGIN, username))) {
-    std::cerr << "Error: failed to send login message\n";
+  Message login_message = Message(TAG_RLOGIN, username);
+  if (!conn.send(login_message)) {
+    std::cerr << "Couldn't send login message\n";
     conn.close();
     return 1;
   }
@@ -37,16 +39,17 @@ int main(int argc, char **argv) {
   // get login response
   Message login_response = Message();
   conn.receive(login_response);
-  // if getting login response failed, catch it
+  // if getting login response failed, print error and exit
   if (login_response.tag == TAG_ERR) {
     std::cerr << login_response.data;
     conn.close();
     return 1;
   }
 
-  // try to join room and catch error if there is one
-  if (!conn.send(Message(TAG_JOIN, room_name))) {
-    std::cerr << "Error: failed to send join message\n";
+  // try to join room and catch error and exit if needed
+  Message join_message = Message(TAG_JOIN, room_name);
+  if (!conn.send(join_message)) {
+    std::cerr << "Couldn't send join message\n";
     conn.close();
     return 1;
   }
@@ -54,6 +57,7 @@ int main(int argc, char **argv) {
   // get join response 
   Message join_response = Message();
   conn.receive(join_response);
+  // if joined failed, exit
   if (join_response.tag == TAG_ERR) {
     std::cerr << join_response.data;
     conn.close();
@@ -63,14 +67,15 @@ int main(int argc, char **argv) {
   // wait for messages from server
   while (1) {
     Message msg = Message();
-    // make sure message received successfully, if not exit program 
-    if (!conn.receive(msg)) {
-      conn.close();
-      return 0;
-    }
+    // take in message from server 
+    conn.receive(msg);
     // output message only if tag is delivery
     if (msg.tag == TAG_DELIVERY) {
       outputMsg(msg.data);
+    }
+    // if not delievery, error and must output payload 
+    else {
+      std::cerr << msg.data;
     }
   }
 

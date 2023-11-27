@@ -50,19 +50,3 @@ void validateMsg(Message& msg, Connection& conn) {
     std::cerr << response.data;
   }
 }
-
-// handle quit command in sender 
-int handleQuit(Message& msg, Connection& conn) {
-  // set tag and data
-  msg.tag = TAG_QUIT;
-  msg.data = "bye";
-  // try to quit out of sender, if fails, throw error 
-  if (!conn.send(msg)) {
-    std::cerr << "Error: failed to send quit message\n";
-    return 1;
-  }
-  // validate quit 
-  validateMsg(msg, conn);
-  // if successful, return zero  
-  return 0;
-}
