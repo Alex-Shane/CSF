@@ -29,16 +29,14 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // attempt to login
-  bool login = conn.send(Message(TAG_SLOGIN, username));
-  // catch failure to log in
-  if (!login) {
-    std::cerr << "Error: failed to send login message to server\n";
+  // attempt to login and catch if failure to log in
+  if (!conn.send(Message(TAG_SLOGIN, username))) {
+    std::cerr << "Error: failed to send login message\n";
     conn.close();
     return 1;
   }
 
-  // try to login 
+  // try to get login response from server
   Message login_response = Message();
   conn.receive(login_response);
   // if error in logging in, close connection and give error message 
@@ -56,28 +54,16 @@ int main(int argc, char **argv) {
       std::getline(std::cin, input);
       // check for quit command
       if (input == "/quit") {
-        // set tag and data
-        msg.tag = TAG_QUIT;
-        msg.data = "bye";
-        // try to quit out of sender, if not, throw error 
-        bool quit = conn.send(msg);
-        if (!quit) {
-          std::cerr << "Error: failed to send quit message to server\n";
+        int quit_result = handleQuit(msg, conn);
+        // if quit failed, return error exit code
+        if (quit_result == 1) {
           return 1;
         }
-        // get the server's response
-        Message response;
-        conn.receive(response);
-        // check for error in response or invalid message sent 
-        if (response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
-          std::cerr << response.data;
-          return 1;
-        }
-        // break out of program if successful quit so loop stops 
+        // if quit success, then break out of while loop 
         break;
       }
       // handle leave 
-      if (input == "/leave") {
+      else if (input == "/leave") {
         msg.tag = TAG_LEAVE;
         msg.data = "bye";
       }
@@ -92,20 +78,13 @@ int main(int argc, char **argv) {
         msg.tag = TAG_SENDALL;
         msg.data = input;
       }
-      // send message to server communicating the input
-      bool success = conn.send(msg);
-      // if send failed, throw error
-      if (!success) {
-        std::cerr << "Error: failed to send main loop message\n";
+      // send message to server communicating the input and if send failed, throw error
+      if (!conn.send(msg)) {
+        std::cerr << "Error: failed to send message\n";
         return 1;
       }
-      // check the server response and make sure it is valid
-      Message response = Message();
-      conn.receive(response);
-      // if reponse resulted in tag error or there was invalid message, throw err 
-      if (response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
-        std::cerr << response.data;
-      }
+      // ensure msg and server response is valid, if not, print error
+      validateMsg(msg, conn);
     }
     
     // close connection 

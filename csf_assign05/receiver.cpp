@@ -27,11 +27,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // attempt to login
-  bool login = conn.send(Message(TAG_RLOGIN, username));
-  // catch failure to log in
-  if (!login) {
-    std::cerr << "Error: failed to send login message to server\n";
+  // attempt to login and catch if failure to log in
+  if (!conn.send(Message(TAG_RLOGIN, username))) {
+    std::cerr << "Error: failed to send login message\n";
     conn.close();
     return 1;
   }
@@ -46,10 +44,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // try to join room
-  bool success = conn.send(Message(TAG_JOIN, room_name));
-  if (!success) {
-    std::cerr << "Error: failed to send join message to server\n";
+  // try to join room and catch error if there is one
+  if (!conn.send(Message(TAG_JOIN, room_name))) {
+    std::cerr << "Error: failed to send join message\n";
     conn.close();
     return 1;
   }
@@ -66,19 +63,14 @@ int main(int argc, char **argv) {
   // wait for messages from server
   while (1) {
     Message msg = Message();
-    bool success = conn.receive(msg);
-    // make sure message received successfully
-    if (!success) {
-      break;
+    // make sure message received successfully, if not exit program 
+    if (!conn.receive(msg)) {
+      conn.close();
+      return 0;
     }
     // output message only if tag is delivery
     if (msg.tag == TAG_DELIVERY) {
-      std::string sender, message;
-      // split the message data into its components
-      std::vector<std::string> msg_info = splitMsgData(msg.data);
-      sender = msg_info[1];
-      message = msg_info[2]; 
-      std::cout << sender << ": " << message;
+      outputMsg(msg.data);
     }
   }
 

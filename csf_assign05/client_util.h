@@ -14,7 +14,13 @@ std::string trim(const std::string &s);
 
 // you can add additional declarations here...
 
-// helper function to seperate message into individual components
-std::vector<std::string> splitMsgData(const std::string &s);
+// function to output message to server 
+void outputMsg(const std::string &msg);
+
+// helper function to validate msg 
+void validateMsg(Message& msg, Connection& conn);
+
+// function to handle quit command
+int handleQuit(Message& msg, Connection& conn);
 
 #endif // CLIENT_UTIL_H
