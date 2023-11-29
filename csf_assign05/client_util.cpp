@@ -26,27 +26,25 @@ std::string trim(const std::string &s) {
 
 // output message helper for receiver
 void outputMsg(const std::string &msg) {
-  std::vector<std::string> msg_info;
   std::stringstream ss(msg);
-  std::string item;
-  // go through stream of s string and store contents until we reach colon each time
-  while (getline(ss, item, ':')) {
-    msg_info.push_back(item);
-  } 
-  std::string user, message;
-  // set user and message content appropriately 
-  user = msg_info[1];
-  message = msg_info[2]; 
-  std::cout << user << ": " << message;
+  std::string ignore, sender, message;
+  // ignore room
+  std::getline(ss, ignore, ':');
+  // store sender
+  std::getline(ss, sender, ':');
+  // store message 
+  std::getline(ss, message, '\0');
+  // print output
+  std::cout << sender << ": " << message;
 }
 
 // helper function to validate msg 
 void validateMsg(Message& msg, Connection& conn) {
   // check the server response and make sure it is valid
-  Message response = Message();
-  conn.receive(response);
+  Message server_response = Message();
+  conn.receive(server_response);
   // if reponse resulted in tag error or there was invalid message, throw err 
-  if (response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
-    std::cerr << response.data;
+  if (server_response.tag == TAG_ERR || conn.get_last_result() == Connection::INVALID_MSG) {
+    std::cerr << server_response.data;
   }
 }
