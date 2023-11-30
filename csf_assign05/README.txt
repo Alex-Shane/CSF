@@ -1,5 +1,5 @@
 
 MS1:
-    Alex work: sender and connection
-    Dylan work: receiver and refactoring
+    Alex work: receiver and connection and refactoring
+    Dylan work: sender  
 
