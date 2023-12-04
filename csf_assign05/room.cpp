@@ -3,45 +3,42 @@
 #include "message_queue.h"
 #include "user.h"
 #include "room.h"
+#include <iostream>
 
 Room::Room(const std::string &room_name)
   : room_name(room_name) {
-  // TODO: initialize the mutex
   // init mutex
-  pthread_mutex_init(&lock, NULL);
+  pthread_mutex_init(&lock, nullptr);
 }
 
 Room::~Room() {
-  // TODO: destroy the mutex
   // destroy mutex
   pthread_mutex_destroy(&lock);
 }
 
 void Room::add_member(User *user) {
-  // TODO: add User to the room
-  // lock mutex and make critical section with guard
+  // make critical section with guard
   Guard g(lock);
   // add user to room
   members.insert(user);
 }
 
 void Room::remove_member(User *user) {
-  // TODO: remove User from the room
-  // lock mutex and make critical section with guard
+  // make critical section with guard
   Guard g(lock);
   // remove user from room
   members.erase(user);
 }
 
 void Room::broadcast_message(const std::string &sender_username, const std::string &message_text) {
-  // TODO: send a message to every (receiver) User in the room
-  // make broadcast message
-  Message broadcast_msg;
-  broadcast_msg.tag = TAG_DELIVERY;
-  broadcast_msg.data = this->room_name + ":" + sender_username + ":" + message_text;
-  // make guard and critical section
+  // make broadcast message string
+  std::string msg_string = this->room_name + ":" + sender_username + ":" + message_text;
+  // set broadcoast message info
+  Message* broadcast_msg = new Message(TAG_DELIVERY, msg_string);
+  // make critical section to add message to user queues
   Guard g(lock);
+  // for each user in room, add message to their queue
   for (User* u : members) {
-    u->mqueue.enqueue(&broadcast_msg);
+    u->mqueue.enqueue(broadcast_msg);
   }
 }
