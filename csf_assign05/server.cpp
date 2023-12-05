@@ -53,18 +53,15 @@ void chat_with_sender(Client_Helper* ch) {
         Message server_error_response = Message(TAG_ERR, "Invalid message, please try again with different message");
         ch->conn->send(server_error_response);
       }
-      // handle error/EOF in reading msg
-      else {
-        // break out of thread when we get here
-        return;
-      }
+      // exit out of sender 
+      return;
     }
 
     // check for quit tag
     if (message_from_client.tag == TAG_QUIT) {
       Message server_response = Message(TAG_OK, "bye");
       ch->conn->send(server_response);
-      // if quit and sender is in a room, must remove them from room
+      // if quit, and sender is in a room, must remove them from room
       if (room != nullptr) {
         room->remove_member(ch->user);
       }
@@ -147,10 +144,8 @@ void chat_with_receiver(Client_Helper* ch) {
       // send error message 
       ch->conn->send(server_error_response);
     }
-    // handle error in reading msg, just exit out of thread
-    else {
-      return;
-    }
+    // need to return for both invalid msg and error parsing
+    return;
   }
 
   // only valid message we can receive at this point is a join tag, if not then error
@@ -159,6 +154,7 @@ void chat_with_receiver(Client_Helper* ch) {
     ch->conn->send(server_response);
     return;
   }
+
   // if join tag, enter receiver into room 
   else {
     std::string room_name = received_msg.data;
@@ -180,8 +176,8 @@ void chat_with_receiver(Client_Helper* ch) {
     Message* received_msg = ch->user->mqueue.dequeue();
     // if we received a message, try to send it 
     if (received_msg != nullptr) {
-      // try to send message, if send fails, clean up memory, remove member from room, and exit thread
-      if (!ch->conn->send(*received_msg)) {
+      // if send fails, clean up memory, remove member from room, and exit thread
+      if (!(ch->conn->send(*received_msg))) {
         delete received_msg;
         // if send fails, we lost connection so remove user from room and exit
         room->remove_member(ch->user);
@@ -190,10 +186,9 @@ void chat_with_receiver(Client_Helper* ch) {
       // if send was successful, still need to delete message
       delete received_msg;
     }
+
     // if we didn't receive message, the queue was too busy and timed out and we just continue
     else {
-      /*Message server_error_response = Message(TAG_ERR, "Message timed out");
-      ch->conn->send(server_error_response);*/
       continue;
     }
   }
@@ -216,10 +211,12 @@ void *worker(void *arg) {
   if (login_message.tag == TAG_RLOGIN || login_message.tag == TAG_SLOGIN) {
     Message server_response = Message(TAG_OK, "Successfully logged in!");
     ch->conn->send(server_response);
-    std::string username = login_message.data.substr();
+    std::string username = login_message.data;
     // delete last char ('\n') from username
     username.erase(username.size()-1);
+    // create user for thread
     User* user = new User(username);
+    // set user in client helper
     ch->user = user;
     // if receiver login, communicate with receiver
     if (login_message.tag == TAG_RLOGIN) {
@@ -227,14 +224,14 @@ void *worker(void *arg) {
     }
     // if sender login, communicate with sender
     else {
-      // communicate with sender
       chat_with_sender(ch);
     }
+    return nullptr;
   }
 
   // if we didn't get rlogin or slogin tag, invalid attempt at message and exit with nullptr
   else {
-    Message server_error_response = Message(TAG_ERR, "Invalid message: try signing in before sending a message");
+    Message server_error_response = Message(TAG_ERR, "Invalid message: try logging in before sending a message");
     ch->conn->send(server_error_response);
     return nullptr;
   }
@@ -294,7 +291,6 @@ void Server::handle_client_requests() {
     if (pthread_create(&client_thread, nullptr, worker, static_cast<void*>(ch)) != 0) {
         std::cerr << "Failed to create thread." << std::endl;
         delete ch;
-        return;
     }
   }
 }
@@ -305,7 +301,7 @@ Room *Server::find_or_create_room(const std::string &room_name) {
   // check to see if room_name is a currently mapped to a room
   auto roomExists = m_rooms.find(room_name);
 
-  // if it is mapped to a room, return that room
+  // if it is mapped to a room (ie the iterator is defined and not the end of the map), return that room
   if (roomExists != m_rooms.end()) {
     return roomExists->second;
   }

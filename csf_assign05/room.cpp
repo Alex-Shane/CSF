@@ -31,14 +31,14 @@ void Room::remove_member(User *user) {
 }
 
 void Room::broadcast_message(const std::string &sender_username, const std::string &message_text) {
-  // make broadcast message string
-  std::string msg_string = this->room_name + ":" + sender_username + ":" + message_text;
-  // set broadcoast message info
-  Message* broadcast_msg = new Message(TAG_DELIVERY, msg_string);
   // make critical section to add message to user queues
   Guard g(lock);
+  // make broadcast message string
+  std::string msg_string = this->room_name + ":" + sender_username + ":" + message_text;
   // for each user in room, add message to their queue
   for (User* u : members) {
+    // set broadcast message pointer and then add it to the user's queue
+    Message* broadcast_msg = new Message(TAG_DELIVERY, msg_string);
     u->mqueue.enqueue(broadcast_msg);
   }
 }

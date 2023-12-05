@@ -21,6 +21,7 @@ MessageQueue::~MessageQueue() {
       delete m;
     }
   }
+
   // destroy mutex
   pthread_mutex_destroy(&m_lock);
   // destroy semaphore
@@ -34,6 +35,7 @@ void MessageQueue::enqueue(Message *msg) {
     // put message on queue
     m_messages.push_back(msg);
   }
+
   // notify threads with sem_post that message is available
   sem_post(&m_avail);
 }
@@ -65,6 +67,7 @@ Message *MessageQueue::dequeue() {
     // remove the msg
     m_messages.pop_front();
   }
+  
   // return the message
   return msg;
 }
